@@ -1,0 +1,10 @@
+{
+  "merchant": "Ember & Oak Home Goods",
+  "products": [
+    {"name": "Ceramic Pour-Over Coffee Set", "description": "Hand-glazed ceramic dripper with matching mug", "category": "kitchen", "price": 1299, "stock": 40},
+    {"name": "Linen Table Runner", "description": "100% linen, natural dye, 72 inches", "category": "home-decor", "price": 899, "stock": 25},
+    {"name": "Cast Iron Skillet 10-inch", "description": "Pre-seasoned, oven safe", "category": "kitchen", "price": 1599, "stock": 15},
+    {"name": "Bamboo Desk Organizer", "description": "Modular bamboo tray set for desk", "category": "office", "price": 749, "stock": 60},
+    {"name": "Wool Throw Blanket", "description": "Merino wool blend, 130x180cm", "category": "home-decor", "price": 2499, "stock": 3}
+  ]
+}
