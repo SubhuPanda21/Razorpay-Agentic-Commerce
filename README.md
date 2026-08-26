@@ -12,6 +12,12 @@ Built for the Razorpay AI Buildathon · Track 01: AI Growth & Agentic Commerce
 [![Tests](https://img.shields.io/badge/tests-11%20passing-brightgreen?logo=pytest&logoColor=white)](#tests)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](#)
 
+[![Tests](https://img.shields.io/badge/tests-11%20passing-brightgreen?logo=pytest&logoColor=white)](#tests)
+[![License](https://img.shields.io/badge/license-MIT-lightgrey)](#)
+
+**[Live API Docs (Swagger UI)](https://razorpay-agentic-commerce-d5ii.onrender.com/docs)**
+
+
 </div>
 
 ---
@@ -165,6 +171,7 @@ python -m scripts.seed_data     # creates the DB + sample catalog
 python -m scripts.run_demo      # scripted end-to-end trace — good for recording
 
 uvicorn src.api.main:app --reload   # or run it as a live API
+Hosted instance (no frontend — this is the FastAPI backend only): Swagger UI →
 ```
 
 Then, with the API running:
