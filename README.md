@@ -12,11 +12,7 @@ Built for the Razorpay AI Buildathon · Track 01: AI Growth & Agentic Commerce
 [![Tests](https://img.shields.io/badge/tests-11%20passing-brightgreen?logo=pytest&logoColor=white)](#tests)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](#)
 
-[![Tests](https://img.shields.io/badge/tests-11%20passing-brightgreen?logo=pytest&logoColor=white)](#tests)
-[![License](https://img.shields.io/badge/license-MIT-lightgrey)](#)
-
-**[Live API Docs (Swagger UI)](https://razorpay-agentic-commerce-d5ii.onrender.com/docs)**
-
+**[🔴 Live Demo — try the playground](https://razorpay-agentic-commerce-d5ii.onrender.com)**
 
 </div>
 
@@ -126,6 +122,30 @@ sequenceDiagram
 
 ---
 
+## Order lifecycle — every terminal state is explainable
+
+```mermaid
+stateDiagram-v2
+    [*] --> created
+    created --> policy_rejected: policy engine hard rule fails
+    created --> blocked: risk agent decision = block
+    created --> paid: payment succeeds first try
+    created --> recovering: payment fails
+    recovering --> recovered: retry succeeds within bound
+    recovering --> failed: max attempts reached (stopping rule)
+    paid --> reconciled
+    recovered --> reconciled
+    policy_rejected --> [*]
+    blocked --> [*]
+    failed --> [*]
+    reconciled --> [*]
+```
+
+No order can sit in an ambiguous state — every path terminates in one of
+five explainable outcomes, each logged with its reason in the audit trail.
+
+---
+
 ## Repo layout
 
 ```
@@ -150,7 +170,9 @@ src/
 │   ├── finance_agent.py      Track 04
 │   └── orchestrator.py       thin coordinator — no business logic of its own
 ├── audit/                     append-only audit trail writer/reader
-└── api/main.py                FastAPI app
+└── api/main.py                FastAPI app (serves the live demo frontend too)
+frontend/
+└── index.html                 animated landing page + live playground, served at "/"
 scripts/
 ├── seed_data.py               loads a sample merchant + catalog
 └── run_demo.py                scripted end-to-end CLI run (good for recording)
@@ -171,10 +193,10 @@ python -m scripts.seed_data     # creates the DB + sample catalog
 python -m scripts.run_demo      # scripted end-to-end trace — good for recording
 
 uvicorn src.api.main:app --reload   # or run it as a live API
-Hosted instance (no frontend — this is the FastAPI backend only): Swagger UI →
 ```
 
-Then, with the API running:
+Then open `http://localhost:8000` for the animated landing page + live
+playground, or hit the API directly:
 
 ```bash
 curl -X POST http://localhost:8000/purchase \
@@ -184,6 +206,10 @@ curl -X POST http://localhost:8000/purchase \
 curl http://localhost:8000/orders/1/audit
 curl http://localhost:8000/finance/summary
 ```
+
+**Hosted instance:** [razorpay-agentic-commerce-d5ii.onrender.com](https://razorpay-agentic-commerce-d5ii.onrender.com)
+— note: free-tier Render sleeps after inactivity, so the first request
+after a while can take ~30s to wake up.
 
 ---
 
