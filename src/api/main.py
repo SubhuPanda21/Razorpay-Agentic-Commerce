@@ -8,6 +8,7 @@ from src.db.models import Product, Order
 from src.agents.orchestrator import run_checkout
 from src.agents.finance_agent import summary as finance_summary
 from src.audit.audit_log import get_trail
+from scripts.seed_data import seed as seed_catalog
 
 app = FastAPI(
     title="Razorpay Agentic Commerce",
@@ -19,6 +20,16 @@ app = FastAPI(
 @app.on_event("startup")
 def _startup():
     init_db()
+    seed_catalog()  # idempotent — no-ops if already seeded, so redeploys are safe
+
+
+@app.get("/")
+def root():
+    return {
+        "service": "Razorpay Agentic Commerce",
+        "docs": "/docs",
+        "health": "/health",
+    }
 
 
 class PurchaseRequest(BaseModel):

@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: razorpay-agentic-commerce
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: USE_MOCK_GATEWAY
+        value: "true"
+      - key: DATABASE_URL
+        value: "sqlite:///./agentic_commerce.db"
+      - key: RISK_BLOCK_THRESHOLD
+        value: "0.75"
+      - key: RISK_HOLD_THRESHOLD
+        value: "0.45"
+      - key: VELOCITY_WINDOW_MINUTES
+        value: "10"
+      - key: VELOCITY_MAX_ORDERS
+        value: "5"
+      - key: RECOVERY_MAX_ATTEMPTS
+        value: "3"
+      - key: DEFAULT_ORDER_CAP
+        value: "20000"
+      - key: AUTHORIZATION_REQUIRED_ABOVE
+        value: "10000"
