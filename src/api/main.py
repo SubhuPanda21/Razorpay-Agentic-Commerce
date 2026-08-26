@@ -1,5 +1,8 @@
 """FastAPI application - the deployable surface of the whole system."""
+import os
+
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -9,6 +12,8 @@ from src.agents.orchestrator import run_checkout
 from src.agents.finance_agent import summary as finance_summary
 from src.audit.audit_log import get_trail
 from scripts.seed_data import seed as seed_catalog
+
+FRONTEND_INDEX = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "index.html")
 
 app = FastAPI(
     title="Razorpay Agentic Commerce",
@@ -25,11 +30,7 @@ def _startup():
 
 @app.get("/")
 def root():
-    return {
-        "service": "Razorpay Agentic Commerce",
-        "docs": "/docs",
-        "health": "/health",
-    }
+    return FileResponse(FRONTEND_INDEX)
 
 
 class PurchaseRequest(BaseModel):

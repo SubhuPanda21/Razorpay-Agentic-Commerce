@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Agentic Commerce — an AI checkout that explains every rupee</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{
+    --ink:#1c1a17; --paper:#faf6ef; --accent:#d9772e; --line:#e7ddcd;
+    --ok:#4c7a5b; --warn:#b8862f; --bad:#b34a3d; --mono:#0e0e0e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif}
+  h1,h2,.serif{font-family:Georgia,"Times New Roman",serif}
+  nav{display:flex;justify-content:space-between;align-items:center;padding:20px 40px;border-bottom:1px solid var(--line)}
+  nav b{font-size:20px} nav .accent{color:var(--accent)}
+  .wrap{max-width:960px;margin:0 auto;padding:0 24px}
+  .hero{text-align:center;padding:70px 24px 40px}
+  .hero h1{font-size:44px;line-height:1.15;margin:0 0 18px}
+  .hero h1 em{color:var(--accent);font-style:italic}
+  .hero p{color:#6b6459;font-size:17px;max-width:560px;margin:0 auto 28px}
+  .cta{display:inline-block;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;margin:0 6px}
+  .cta.primary{background:var(--accent);color:#fff}
+  .cta.ghost{border:1px solid #d8cfc0;color:var(--ink)}
+
+  /* --- animated pipeline --- */
+  .pipeline{background:#fff;border:1px solid var(--line);border-radius:14px;padding:34px 20px;margin:30px auto;max-width:900px}
+  .track{position:relative;height:70px;margin:10px 0 30px}
+  .rail{position:absolute;top:34px;left:0;right:0;height:2px;background:var(--line)}
+  .stop{position:absolute;top:24px;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid #c9bfae;transform:translateX(-50%)}
+  .stop span{position:absolute;top:26px;left:50%;transform:translateX(-50%);font-size:11px;color:#8a8272;white-space:nowrap}
+  .token{position:absolute;top:29px;width:12px;height:12px;border-radius:50%;background:var(--accent);
+    animation:move 7s linear infinite; box-shadow:0 0 0 4px rgba(217,119,46,.18)}
+  @keyframes move{
+    0%{left:2%; background:var(--accent)}
+    16%{left:18%; background:var(--accent)}
+    17%{background:var(--warn)}
+    33%{left:35%; background:var(--warn)}
+    34%{background:var(--accent)}
+    50%{left:52%; background:var(--accent)}
+    51%{background:var(--ok)}
+    67%{left:68%; background:var(--ok)}
+    83%{left:84%; background:var(--accent)}
+    100%{left:97%; background:var(--accent)}
+  }
+
+  /* --- terminal --- */
+  .term{background:var(--mono);color:#d7e6d1;border-radius:12px;padding:22px 24px;font-family:"SF Mono",Consolas,monospace;
+    font-size:13px;max-width:900px;margin:26px auto;min-height:170px;white-space:pre-wrap;line-height:1.7}
+  .term .p{color:#7fb3e0}
+  .term .a{color:#e0b97f}
+  .term .ok{color:#8bc48a}
+  .term .bad{color:#e08a8a}
+
+  /* --- stats --- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:900px;margin:0 auto 40px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 10px;text-align:center}
+  .stat b{display:block;font-size:26px;color:var(--accent)}
+  .stat span{font-size:12px;color:#8a8272;letter-spacing:.03em}
+
+  /* --- module cards --- */
+  .modgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:900px;margin:0 auto 50px}
+  .mod{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;cursor:pointer;transition:.15s}
+  .mod:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .mod small{color:var(--accent);letter-spacing:.06em}
+  .mod h3{margin:6px 0 6px;font-size:16px}
+  .mod p{margin:0;color:#6b6459;font-size:13px;line-height:1.4}
+
+  /* --- playground --- */
+  .play{max-width:900px;margin:0 auto 70px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px}
+  .play h2{margin-top:0}
+  form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  input,select{padding:9px 10px;border:1px solid #d8cfc0;border-radius:8px;font-size:14px;background:#fffdf9}
+  label{font-size:12px;color:#8a8272;display:block;margin-bottom:4px}
+  button{grid-column:1/-1;background:var(--ink);color:#fff;border:0;padding:12px;border-radius:8px;font-weight:600;cursor:pointer}
+  button:hover{background:#000}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;color:#fff}
+  footer{text-align:center;padding:30px;color:#8a8272;font-size:13px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<nav>
+  <b>Agentic <span class="accent">Commerce</span></b>
+  <span style="color:#8a8272;font-size:13px">Razorpay AI Buildathon · Track 01</span>
+</nav>
+
+<div class="hero wrap">
+  <h1>An AI buyer agent that<br>can't spend past <em>what it's told,</em><br>and can't hide what happened.</h1>
+  <p>One checkout pipeline: a shopping agent picks the product, a policy engine enforces hard limits no agent can override, a risk gate screens for fraud, payment recovers itself when it fails, and every step lands in one audit trail.</p>
+  <a class="cta primary" href="#play">Try the Playground</a>
+  <a class="cta ghost" href="#how">See how it works</a>
+</div>
+
+<div class="pipeline" id="how">
+  <div class="track">
+    <div class="rail"></div>
+    <div class="token"></div>
+    <div class="stop" style="left:2%"><span>Shop</span></div>
+    <div class="stop" style="left:18%"><span>Policy</span></div>
+    <div class="stop" style="left:35%"><span>Risk</span></div>
+    <div class="stop" style="left:52%"><span>Pay</span></div>
+    <div class="stop" style="left:68%"><span>Recover</span></div>
+    <div class="stop" style="left:84%"><span>Reconcile</span></div>
+    <div class="stop" style="left:97%"><span>Audit</span></div>
+  </div>
+  <div class="term" id="terminal">$ waiting for the first order…</div>
+</div>
+
+<div class="stats">
+  <div class="stat"><b>4</b><span>TRACKS UNIFIED</span></div>
+  <div class="stat"><b>11</b><span>TESTS PASSING</span></div>
+  <div class="stat"><b>3</b><span>MAX RETRY BOUND</span></div>
+  <div class="stat"><b>100%</b><span>STEPS AUDITED</span></div>
+</div>
+
+<div class="wrap">
+  <h2 class="serif" style="text-align:center">Six stages, one guarantee: every rupee explainable.</h2>
+  <div class="modgrid">
+    <div class="mod"><small>01 · SHOP</small><h3>Shopping Agent</h3><p>Turns a natural-language request into a product, via explicit tools — never touches the DB directly.</p></div>
+    <div class="mod"><small>02 · GATE</small><h3>Policy Engine</h3><p>Hard spending caps and authorization thresholds. Deterministic Python — no agent can talk its way past it.</p></div>
+    <div class="mod"><small>03 · SCORE</small><h3>Risk Agent</h3><p>Velocity + amount-anomaly scoring. Strictly defense-only: allow, hold, or block — never an offensive action.</p></div>
+    <div class="mod"><small>04 · PAY</small><h3>Gateway</h3><p>Razorpay test-mode SDK, with a deterministic mock so it's demoable without live keys.</p></div>
+    <div class="mod"><small>05 · RECOVER</small><h3>Recovery Agent</h3><p>Bounded retries with an alternate payment method — a real stopping rule, not infinite retry.</p></div>
+    <div class="mod"><small>06 · RECONCILE</small><h3>Finance Agent</h3><p>Matches expected vs settled amount. Reports honest exceptions instead of hiding them.</p></div>
+  </div>
+</div>
+
+<div class="play wrap" id="play">
+  <h2 class="serif">Live Playground</h2>
+  <p style="color:#8a8272;font-size:14px;margin-top:-8px">This calls the real API. Every line below is what actually happened, in order.</p>
+  <form id="purchaseForm">
+    <div><label>Buyer agent ID</label><input name="buyer_agent_id" value="agent-demo-1"></div>
+    <div><label>What do you want to buy?</label><input name="query" value="coffee set"></div>
+    <div><label>Quantity</label><input name="quantity" type="number" value="1" min="1"></div>
+    <div><label>Budget limit (₹, optional)</label><input name="budget_limit" type="number" placeholder="e.g. 1000"></div>
+    <div><label>Payment method</label>
+      <select name="preferred_method">
+        <option value="upi">UPI</option><option value="card">Card</option><option value="netbanking">Netbanking</option>
+      </select>
+    </div>
+    <div><label>Authorized override?</label>
+      <select name="authorized"><option value="false">No</option><option value="true">Yes</option></select>
+    </div>
+    <button type="submit">Run checkout</button>
+  </form>
+  <div id="result"></div>
+</div>
+
+<footer>Built for the Razorpay AI Buildathon — Track 01: AI Growth &amp; Agentic Commerce</footer>
+
+<script>
+const term = document.getElementById('terminal');
+const resultBox = document.getElementById('result');
+
+function colorLine(step){
+  const actorColor = {shopping_agent:'p', policy_engine:'a', risk_agent:'a', checkout_agent:'p',
+                      recovery_agent:'a', finance_agent:'ok'}[step.actor] || 'p';
+  return `<span class="${actorColor}">[${step.actor}]</span> ${step.action} ${JSON.stringify(step.detail)}`;
+}
+
+async function typeTrail(trail){
+  term.innerHTML = '';
+  for (const step of trail){
+    const line = document.createElement('div');
+    line.style.opacity = '0';
+    line.style.transition = 'opacity .25s';
+    line.innerHTML = colorLine(step);
+    term.appendChild(line);
+    await new Promise(r=>setTimeout(r,80));
+    line.style.opacity = '1';
+    await new Promise(r=>setTimeout(r,120));
+  }
+}
+
+document.getElementById('purchaseForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const payload = {
+    merchant_id: 1,
+    buyer_agent_id: f.get('buyer_agent_id'),
+    query: f.get('query'),
+    quantity: parseInt(f.get('quantity')||'1'),
+    preferred_method: f.get('preferred_method'),
+    authorized: f.get('authorized') === 'true',
+  };
+  if (f.get('budget_limit')) payload.budget_limit = parseFloat(f.get('budget_limit'));
+
+  resultBox.innerHTML = '<p style="color:#8a8272">running…</p>';
+  try{
+    const res = await fetch('/purchase', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    const data = await res.json();
+    const colors = {paid:'#4c7a5b', recovered:'#4c7a5b', failed:'#b34a3d', blocked:'#b34a3d', policy_rejected:'#b8862f'};
+    resultBox.innerHTML = `<p><span class="badge" style="background:${colors[data.status]||'#555'}">${data.status}</span> ${data.message}</p>`;
+    await typeTrail(data.audit_trail || []);
+  }catch(err){
+    resultBox.innerHTML = '<p style="color:#b34a3d">Could not reach the API — is the server running?</p>';
+  }
+});
+</script>
+</body>
+</html>
