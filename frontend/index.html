@@ -11,10 +11,13 @@
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif}
-  h1,h2,.serif{font-family:Georgia,"Times New Roman",serif}
-  nav{display:flex;justify-content:space-between;align-items:center;padding:20px 40px;border-bottom:1px solid var(--line)}
+  h1,h2,h3,.serif{font-family:Georgia,"Times New Roman",serif}
+  nav{display:flex;justify-content:space-between;align-items:center;padding:20px 40px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper);z-index:10}
   nav b{font-size:20px} nav .accent{color:var(--accent)}
+  nav a{color:#6b6459;text-decoration:none;font-size:14px;margin-left:22px}
   .wrap{max-width:960px;margin:0 auto;padding:0 24px}
+  section{padding:10px 0}
+  .eyebrow{color:var(--accent);font-size:12px;letter-spacing:.1em;font-weight:700;text-align:center;margin-bottom:8px}
   .hero{text-align:center;padding:70px 24px 40px}
   .hero h1{font-size:44px;line-height:1.15;margin:0 0 18px}
   .hero h1 em{color:var(--accent);font-style:italic}
@@ -22,8 +25,10 @@
   .cta{display:inline-block;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;margin:0 6px}
   .cta.primary{background:var(--accent);color:#fff}
   .cta.ghost{border:1px solid #d8cfc0;color:var(--ink)}
+  h2.center{text-align:center;font-size:30px;margin:0 0 8px}
+  p.sub{text-align:center;color:#6b6459;max-width:600px;margin:0 auto 34px}
 
-  /* --- animated pipeline --- */
+  /* --- animated pipeline (hero rail) --- */
   .pipeline{background:#fff;border:1px solid var(--line);border-radius:14px;padding:34px 20px;margin:30px auto;max-width:900px}
   .track{position:relative;height:70px;margin:10px 0 30px}
   .rail{position:absolute;top:34px;left:0;right:0;height:2px;background:var(--line)}
@@ -50,7 +55,6 @@
   .term .p{color:#7fb3e0}
   .term .a{color:#e0b97f}
   .term .ok{color:#8bc48a}
-  .term .bad{color:#e08a8a}
 
   /* --- stats --- */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:900px;margin:0 auto 40px}
@@ -58,17 +62,77 @@
   .stat b{display:block;font-size:26px;color:var(--accent)}
   .stat span{font-size:12px;color:#8a8272;letter-spacing:.03em}
 
-  /* --- module cards --- */
-  .modgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:900px;margin:0 auto 50px}
+  /* --- the problem section --- */
+  .problem{max-width:900px;margin:50px auto}
+  .problem-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center}
+  .bad-code, .good-code{border-radius:12px;padding:18px;font-family:"SF Mono",Consolas,monospace;font-size:12.5px;line-height:1.6}
+  .bad-code{background:#2b1414;color:#e0a9a0;border:1px solid #4a2020}
+  .good-code{background:#0e2118;color:#a9d6bb;border:1px solid #1e4432}
+  .code-label{font-size:11px;letter-spacing:.08em;font-weight:700;margin-bottom:8px;display:block}
+  .bad-code .code-label{color:#e08a7d}
+  .good-code .code-label{color:#7fd19e}
+  .strike{text-decoration:line-through;opacity:.6}
+
+  /* --- 4-step example walkthrough (StateJar-style) --- */
+  .steps4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:960px;margin:20px auto 50px}
+  .step-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;position:relative}
+  .step-card.active{border-color:var(--accent)}
+  .step-card small{color:var(--accent);letter-spacing:.06em;font-weight:700}
+  .step-card h3{margin:6px 0 8px;font-size:15px}
+  .step-card p{margin:0 0 10px;color:#6b6459;font-size:12.5px;line-height:1.4}
+  .mini-anim{height:64px;border-radius:8px;background:#faf6ef;border:1px solid var(--line);position:relative;overflow:hidden;margin-bottom:10px}
+  .step-code{background:#0e0e0e;color:#d7e6d1;font-family:"SF Mono",Consolas,monospace;font-size:10.5px;border-radius:6px;padding:8px;line-height:1.5;overflow:hidden}
+  .arrow{position:absolute;right:-22px;top:44%;color:#c9bfae;font-size:20px;z-index:2}
+
+  /* mini anim: policy bar filling to cap and stopping */
+  .bar-track{position:absolute;left:8px;right:8px;bottom:20px;height:8px;background:#e7ddcd;border-radius:4px}
+  .bar-fill{position:absolute;left:0;top:0;bottom:0;background:var(--warn);border-radius:4px;animation:fillbar 3s ease-in-out infinite}
+  .bar-cap{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--bad);left:70%}
+  @keyframes fillbar{0%{width:0%}55%{width:70%}60%{width:70%}100%{width:70%}}
+  .bar-label{position:absolute;bottom:2px;left:8px;font-size:9px;color:#8a8272}
+
+  /* mini anim: risk pulse dots */
+  .dotrow{position:absolute;left:8px;right:8px;top:14px;display:flex;gap:6px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#d8cfc0;animation:pulse 2.4s ease-in-out infinite}
+  .dot:nth-child(1){animation-delay:0s}.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+  .dot:nth-child(4){animation-delay:.6s}.dot:nth-child(5){animation-delay:.8s}.dot:nth-child(6){animation-delay:1s}
+  @keyframes pulse{0%,100%{background:#d8cfc0}40%{background:var(--bad)}}
+
+  /* mini anim: retry loop */
+  .retry-icon{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-size:26px;animation:spin 2.4s linear infinite}
+  @keyframes spin{0%{transform:translate(-50%,-50%) rotate(0deg)}100%{transform:translate(-50%,-50%) rotate(360deg)}}
+  .retry-count{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:10px;color:#8a8272}
+
+  /* mini anim: reconcile checkmark draw */
+  .check-svg{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%)}
+  .check-path{stroke-dasharray:40;stroke-dashoffset:40;animation:draw 2.6s ease-in-out infinite}
+  @keyframes draw{0%{stroke-dashoffset:40}40%{stroke-dashoffset:0}80%{stroke-dashoffset:0}100%{stroke-dashoffset:40}}
+
+  /* mini anim: catalog search sweep */
+  .sweep{position:absolute;top:10px;bottom:10px;width:2px;background:var(--accent);left:0;animation:sweep 2.6s ease-in-out infinite}
+  @keyframes sweep{0%{left:6%}50%{left:88%}100%{left:6%}}
+  .sweep-cards{position:absolute;top:14px;bottom:14px;left:0;right:0;display:flex;justify-content:space-around;align-items:center}
+  .sweep-card{width:14px;height:20px;background:#e7ddcd;border-radius:2px}
+
+  /* --- module cards (accordion) --- */
+  .modgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:900px;margin:0 auto 20px}
   .mod{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;cursor:pointer;transition:.15s}
-  .mod:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .mod:hover{border-color:var(--accent)}
+  .mod.open{border-color:var(--accent);grid-column:span 3}
   .mod small{color:var(--accent);letter-spacing:.06em}
-  .mod h3{margin:6px 0 6px;font-size:16px}
+  .mod h3{margin:6px 0 6px;font-size:16px;display:flex;justify-content:space-between}
   .mod p{margin:0;color:#6b6459;font-size:13px;line-height:1.4}
+  .mod-detail{display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+  .mod.open .mod-detail{display:block}
+  .mod-detail .mini-anim{height:80px;max-width:400px}
+
+  /* --- closing banner --- */
+  .banner{background:var(--ink);color:#fff;border-radius:16px;max-width:900px;margin:60px auto;padding:50px 30px;text-align:center}
+  .banner h2{font-size:28px;margin:0 0 10px}
+  .banner p{color:#cbc3b3;margin-bottom:22px}
 
   /* --- playground --- */
   .play{max-width:900px;margin:0 auto 70px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px}
-  .play h2{margin-top:0}
   form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
   input,select{padding:9px 10px;border:1px solid #d8cfc0;border-radius:8px;font-size:14px;background:#fffdf9}
   label{font-size:12px;color:#8a8272;display:block;margin-bottom:4px}
@@ -82,7 +146,7 @@
 
 <nav>
   <b>Agentic <span class="accent">Commerce</span></b>
-  <span style="color:#8a8272;font-size:13px">Razorpay AI Buildathon · Track 01</span>
+  <div><a href="#how">How it works</a><a href="#modules">Modules</a><a href="#play">Playground</a></div>
 </nav>
 
 <div class="hero wrap">
@@ -114,16 +178,101 @@
   <div class="stat"><b>100%</b><span>STEPS AUDITED</span></div>
 </div>
 
-<div class="wrap">
-  <h2 class="serif" style="text-align:center">Six stages, one guarantee: every rupee explainable.</h2>
-  <div class="modgrid">
-    <div class="mod"><small>01 · SHOP</small><h3>Shopping Agent</h3><p>Turns a natural-language request into a product, via explicit tools — never touches the DB directly.</p></div>
-    <div class="mod"><small>02 · GATE</small><h3>Policy Engine</h3><p>Hard spending caps and authorization thresholds. Deterministic Python — no agent can talk its way past it.</p></div>
-    <div class="mod"><small>03 · SCORE</small><h3>Risk Agent</h3><p>Velocity + amount-anomaly scoring. Strictly defense-only: allow, hold, or block — never an offensive action.</p></div>
-    <div class="mod"><small>04 · PAY</small><h3>Gateway</h3><p>Razorpay test-mode SDK, with a deterministic mock so it's demoable without live keys.</p></div>
-    <div class="mod"><small>05 · RECOVER</small><h3>Recovery Agent</h3><p>Bounded retries with an alternate payment method — a real stopping rule, not infinite retry.</p></div>
-    <div class="mod"><small>06 · RECONCILE</small><h3>Finance Agent</h3><p>Matches expected vs settled amount. Reports honest exceptions instead of hiding them.</p></div>
+<!-- THE PROBLEM -->
+<section class="wrap problem">
+  <div class="eyebrow">THE PROBLEM</div>
+  <h2 class="center">Autonomous checkout is where trust quietly breaks.</h2>
+  <p class="sub">Give an LLM a payment tool and a prompt, and it decides how much to spend. That works — until the one time it doesn't.</p>
+  <div class="problem-grid">
+    <div class="bad-code">
+      <span class="code-label">✕ LLM → GATEWAY DIRECTLY</span>
+      agent.decide("buy the ₹24,999 laptop")<br>
+      <span class="strike">// user's limit was ₹20,000</span><br>
+      razorpay.charge(24999)<br>
+      <span class="strike">// nothing stopped it</span>
+    </div>
+    <div class="good-code">
+      <span class="code-label">✓ THIS SYSTEM</span>
+      agent.select("laptop")<br>
+      policy.evaluate(order, cap=20000)<br>
+      → <b>rejected: exceeds spending limit</b><br>
+      // deterministic. no override possible.
+    </div>
   </div>
+</section>
+
+<!-- 4-STEP WALKTHROUGH -->
+<div class="wrap">
+  <div class="eyebrow">ONE REAL ORDER</div>
+  <h2 class="center">From request to receipt, in four moves.</h2>
+  <p class="sub">Same order, every time — a buyer says what it wants, the system decides what's safe, what's real, and what got reconciled.</p>
+</div>
+<div class="steps4">
+  <div class="step-card">
+    <small>01 · SELECT</small><h3>Shopping Agent</h3>
+    <div class="mini-anim"><div class="sweep"></div><div class="sweep-cards"><div class="sweep-card"></div><div class="sweep-card"></div><div class="sweep-card"></div><div class="sweep-card"></div></div></div>
+    <p>Natural language → best-match product via explicit tool calls.</p>
+    <div class="step-code">query: "wool throw blanket"<br>→ product_id: 5, price: ₹2,499</div>
+    <div class="arrow">→</div>
+  </div>
+  <div class="step-card">
+    <small>02 · GATE</small><h3>Policy + Risk</h3>
+    <div class="mini-anim"><div class="bar-track"><div class="bar-fill"></div><div class="bar-cap"></div></div><div class="bar-label">spend vs. cap</div></div>
+    <p>Hard cap checked first (final if rejected), then fraud-signal scoring.</p>
+    <div class="step-code">cap: 20000 · order: 2499 → OK<br>risk_score: 0.31 → allow</div>
+    <div class="arrow">→</div>
+  </div>
+  <div class="step-card">
+    <small>03 · PAY / RECOVER</small><h3>Gateway + Recovery</h3>
+    <div class="mini-anim"><div class="retry-icon">↻</div><div class="retry-count">attempt 2 of 3</div></div>
+    <p>If the charge fails, a bounded retry with an alternate method kicks in.</p>
+    <div class="step-code">attempt 1: upi → bank_timeout<br>attempt 2: card → success</div>
+    <div class="arrow">→</div>
+  </div>
+  <div class="step-card">
+    <small>04 · PROVE</small><h3>Reconcile + Audit</h3>
+    <div class="mini-anim">
+      <svg class="check-svg" width="40" height="40" viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="16" fill="none" stroke="#7fd19e" stroke-width="2"/>
+        <path class="check-path" d="M12 20 L18 26 L28 14" fill="none" stroke="#4c7a5b" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <p>Expected vs. settled amount matched, exception list stays honest.</p>
+    <div class="step-code">matched: true<br>match_rate: 1.0</div>
+  </div>
+</div>
+
+<!-- MODULES (click to expand) -->
+<div class="wrap" id="modules">
+  <div class="eyebrow">SIX MODULES</div>
+  <h2 class="center">One guarantee: every rupee explainable.</h2>
+  <p class="sub">Click a module to watch its job in motion.</p>
+</div>
+<div class="modgrid" id="modgrid">
+  <div class="mod" data-anim="shop"><small>01 · SHOP</small><h3>Shopping Agent <span>▾</span></h3><p>Turns a request into a product via explicit tools — never touches the DB directly.</p>
+    <div class="mod-detail"><div class="mini-anim"><div class="sweep"></div><div class="sweep-cards"><div class="sweep-card"></div><div class="sweep-card"></div><div class="sweep-card"></div></div></div><div class="step-code">search_catalog() → check_inventory() → select</div></div>
+  </div>
+  <div class="mod" data-anim="policy"><small>02 · GATE</small><h3>Policy Engine <span>▾</span></h3><p>Hard spending caps and authorization thresholds. No agent can override this.</p>
+    <div class="mod-detail"><div class="mini-anim"><div class="bar-track"><div class="bar-fill"></div><div class="bar-cap"></div></div></div><div class="step-code">order > cap → rejected. final. no retry.</div></div>
+  </div>
+  <div class="mod" data-anim="risk"><small>03 · SCORE</small><h3>Risk Agent <span>▾</span></h3><p>Velocity + amount-anomaly scoring. Defense-only: allow, hold, or block.</p>
+    <div class="mod-detail"><div class="mini-anim"><div class="dotrow"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div><div class="step-code">6 orders / 10min → velocity flagged</div></div>
+  </div>
+  <div class="mod" data-anim="gateway"><small>04 · PAY</small><h3>Gateway <span>▾</span></h3><p>Razorpay test-mode SDK, with a deterministic mock so it's demoable without live keys.</p>
+    <div class="mod-detail"><div class="mini-anim"><div class="sweep"></div></div><div class="step-code">gateway.charge(order_id, amount, method)</div></div>
+  </div>
+  <div class="mod" data-anim="recovery"><small>05 · RECOVER</small><h3>Recovery Agent <span>▾</span></h3><p>Bounded retries with an alternate method — a real stopping rule.</p>
+    <div class="mod-detail"><div class="mini-anim"><div class="retry-icon">↻</div><div class="retry-count">stops after 3</div></div><div class="step-code">insufficient_funds → retry as card</div></div>
+  </div>
+  <div class="mod" data-anim="finance"><small>06 · RECONCILE</small><h3>Finance Agent <span>▾</span></h3><p>Matches expected vs settled. Reports honest exceptions instead of hiding them.</p>
+    <div class="mod-detail"><div class="mini-anim"><svg class="check-svg" width="36" height="36" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#7fd19e" stroke-width="2"/><path class="check-path" d="M12 20 L18 26 L28 14" fill="none" stroke="#4c7a5b" stroke-width="3" stroke-linecap="round"/></svg></div><div class="step-code">match_rate: 1.0 · exceptions: []</div></div>
+  </div>
+</div>
+
+<div class="banner">
+  <h2 class="serif">Give your agent money it can be trusted with.</h2>
+  <p>Run a real order below and watch every decision — gated, scored, recovered, reconciled — happen in front of you.</p>
+  <a class="cta primary" href="#play">Try the Playground</a>
 </div>
 
 <div class="play wrap" id="play">
@@ -150,6 +299,14 @@
 <footer>Built for the Razorpay AI Buildathon — Track 01: AI Growth &amp; Agentic Commerce</footer>
 
 <script>
+document.querySelectorAll('.mod').forEach(card=>{
+  card.addEventListener('click', ()=>{
+    const isOpen = card.classList.contains('open');
+    document.querySelectorAll('.mod').forEach(c=>c.classList.remove('open'));
+    if(!isOpen) card.classList.add('open');
+  });
+});
+
 const term = document.getElementById('terminal');
 const resultBox = document.getElementById('result');
 
