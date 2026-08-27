@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>About — Agentic Commerce</title>
+<meta name="description" content="Why Agentic Commerce exists, how it's built, and who built it — for the Razorpay AI Buildathon.">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%231c1a17%22/><circle cx=%2250%22 cy=%2250%22 r=%2222%22 fill=%22%23d9772e%22/></svg>">
+<style>
+  :root{--ink:#1c1a17;--paper:#faf6ef;--accent:#d9772e;--line:#e7ddcd;--ok:#4c7a5b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif}
+  h1,h2,.serif{font-family:Georgia,"Times New Roman",serif}
+  nav{display:flex;justify-content:space-between;align-items:center;padding:20px 40px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper);z-index:10}
+  nav b{font-size:20px} nav .accent{color:var(--accent)} nav a{color:#6b6459;text-decoration:none;font-size:14px;margin-left:22px}
+  .wrap{max-width:760px;margin:0 auto;padding:60px 24px}
+  h1{font-size:38px;line-height:1.2}
+  p{color:#3d3a34;font-size:16px;line-height:1.7}
+  .lede{color:#6b6459;font-size:18px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px;margin:18px 0}
+  .badges{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+  .badge{background:#fff;border:1px solid var(--line);border-radius:20px;padding:6px 14px;font-size:13px;color:#3d3a34}
+  .author{display:flex;gap:16px;align-items:center}
+  .avatar{width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;font-family:Georgia,serif}
+  .cta{display:inline-block;padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:600;margin:4px 6px 0 0}
+  .cta.primary{background:var(--accent);color:#fff}
+  .cta.ghost{border:1px solid #d8cfc0;color:var(--ink)}
+  footer{text-align:center;padding:30px;color:#8a8272;font-size:13px;border-top:1px solid var(--line);margin-top:40px}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" style="text-decoration:none"><b style="color:var(--ink)">Agentic <span class="accent">Commerce</span></b></a>
+  <div><a href="/#how">How it works</a><a href="/#modules">Modules</a><a href="/about">About</a><a href="/docs" target="_blank">API Docs</a><a href="/#play">Playground</a></div>
+</nav>
+
+<div class="wrap">
+  <div class="eyebrow" style="color:var(--accent);font-size:12px;letter-spacing:.1em;font-weight:700">ABOUT</div>
+  <h1 class="serif">Why this exists.</h1>
+  <p class="lede">Give an autonomous agent a payment tool and a prompt, and it decides how much to spend. That works — until the one time it doesn't. This project is an answer: an AI checkout where the spending limit is enforced by code, not by asking nicely.</p>
+
+  <div class="card">
+    <h2 class="serif" style="margin-top:0;font-size:20px">Built for Razorpay's AI Buildathon</h2>
+    <p style="margin-bottom:0">Track 01 — AI Growth &amp; Agentic Commerce is the primary build. Rather than four separate demos for four tracks, this is one coherent pipeline where Risk, Recovery, and Finance are composed <em>stages</em> the same order flows through — a shopping agent selects a product, a policy engine enforces hard spending caps no agent can override, a risk gate screens for fraud, payment recovers itself with bounded retries, and a finance agent reconciles the result. Every step lands in one audit trail.</p>
+  </div>
+
+  <div class="card">
+    <h2 class="serif" style="margin-top:0;font-size:20px">Built with</h2>
+    <div class="badges">
+      <span class="badge">Python 3.11</span>
+      <span class="badge">FastAPI</span>
+      <span class="badge">SQLAlchemy 2.0</span>
+      <span class="badge">Razorpay SDK (test-mode)</span>
+      <span class="badge">Pytest — 11 tests</span>
+      <span class="badge">Deployed on Render</span>
+    </div>
+    <p style="margin-bottom:0">Every claim on this site is backed by a passing test and a working endpoint — nothing here is a mockup. <a href="/docs" target="_blank" style="color:var(--accent)">Explore the live API →</a></p>
+  </div>
+
+  <div class="card author">
+    <div class="avatar">SP</div>
+    <div>
+      <b>Subhalaxmi Panda</b><br>
+      <span style="color:#6b6459;font-size:14px">Final-year B.Tech CSE, Ajeenkya D.Y. Patil University · AI/ML Engineer</span>
+    </div>
+  </div>
+
+  <a class="cta primary" href="https://github.com/SubhuPanda21/Razorpay-Agentic-Commerce" target="_blank">View source on GitHub</a>
+  <a class="cta ghost" href="/">Back to home</a>
+</div>
+
+<footer>Built for the Razorpay AI Buildathon — Track 01: AI Growth &amp; Agentic Commerce</footer>
+</body>
+</html>

@@ -14,6 +14,7 @@ from src.audit.audit_log import get_trail
 from scripts.seed_data import seed as seed_catalog
 
 FRONTEND_INDEX = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "index.html")
+FRONTEND_ABOUT = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "about.html")
 
 app = FastAPI(
     title="Razorpay Agentic Commerce",
@@ -31,6 +32,11 @@ def _startup():
 @app.get("/")
 def root():
     return FileResponse(FRONTEND_INDEX)
+
+
+@app.get("/about")
+def about():
+    return FileResponse(FRONTEND_ABOUT)
 
 
 @app.get("/robots.txt")
