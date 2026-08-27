@@ -3,7 +3,18 @@
 <head>
 <meta charset="UTF-8" />
 <title>Agentic Commerce — an AI checkout that explains every rupee</title>
+<meta name="description" content="An AI buyer agent that can't spend past what it's told and can't hide what happened. A checkout pipeline gated by policy, scored for risk, backed by recovery, closed by reconciliation. Built for the Razorpay AI Buildathon.">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%231c1a17%22/><circle cx=%2250%22 cy=%2250%22 r=%2222%22 fill=%22%23d9772e%22/></svg>">
+
+<meta property="og:title" content="Agentic Commerce — an AI checkout that explains every rupee">
+<meta property="og:description" content="One AI buyer agent. Policy-gated, risk-scored, recovery-backed, reconciled. Every rupee explainable.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://razorpay-agentic-commerce-d5ii.onrender.com/">
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Agentic Commerce — an AI checkout that explains every rupee">
+<meta name="twitter:description" content="One AI buyer agent. Policy-gated, risk-scored, recovery-backed, reconciled.">
 <style>
   :root{
     --ink:#1c1a17; --paper:#faf6ef; --accent:#d9772e; --line:#e7ddcd;
@@ -140,6 +151,10 @@
   button:hover{background:#000}
   .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;color:#fff}
   footer{text-align:center;padding:30px;color:#8a8272;font-size:13px;border-top:1px solid var(--line)}
+
+  /* --- scroll reveal --- */
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.in{opacity:1;transform:translateY(0)}
 </style>
 </head>
 <body>
@@ -179,7 +194,7 @@
 </div>
 
 <!-- THE PROBLEM -->
-<section class="wrap problem">
+<section class="reveal wrap problem">
   <div class="eyebrow">THE PROBLEM</div>
   <h2 class="center">Autonomous checkout is where trust quietly breaks.</h2>
   <p class="sub">Give an LLM a payment tool and a prompt, and it decides how much to spend. That works — until the one time it doesn't.</p>
@@ -207,7 +222,7 @@
   <h2 class="center">From request to receipt, in four moves.</h2>
   <p class="sub">Same order, every time — a buyer says what it wants, the system decides what's safe, what's real, and what got reconciled.</p>
 </div>
-<div class="steps4">
+<div class="reveal steps4">
   <div class="step-card">
     <small>01 · SELECT</small><h3>Shopping Agent</h3>
     <div class="mini-anim"><div class="sweep"></div><div class="sweep-cards"><div class="sweep-card"></div><div class="sweep-card"></div><div class="sweep-card"></div><div class="sweep-card"></div></div></div>
@@ -248,7 +263,7 @@
   <h2 class="center">One guarantee: every rupee explainable.</h2>
   <p class="sub">Click a module to watch its job in motion.</p>
 </div>
-<div class="modgrid" id="modgrid">
+<div class="reveal modgrid" id="modgrid">
   <div class="mod" data-anim="shop"><small>01 · SHOP</small><h3>Shopping Agent <span>▾</span></h3><p>Turns a request into a product via explicit tools — never touches the DB directly.</p>
     <div class="mod-detail"><div class="mini-anim"><div class="sweep"></div><div class="sweep-cards"><div class="sweep-card"></div><div class="sweep-card"></div><div class="sweep-card"></div></div></div><div class="step-code">search_catalog() → check_inventory() → select</div></div>
   </div>
@@ -269,13 +284,13 @@
   </div>
 </div>
 
-<div class="banner">
+<div class="reveal banner">
   <h2 class="serif">Give your agent money it can be trusted with.</h2>
   <p>Run a real order below and watch every decision — gated, scored, recovered, reconciled — happen in front of you.</p>
   <a class="cta primary" href="#play">Try the Playground</a>
 </div>
 
-<div class="play wrap" id="play">
+<div class="reveal play wrap" id="play">
   <h2 class="serif">Live Playground</h2>
   <p style="color:#8a8272;font-size:14px;margin-top:-8px">This calls the real API. Every line below is what actually happened, in order.</p>
   <form id="purchaseForm">
@@ -354,6 +369,10 @@ document.getElementById('purchaseForm').addEventListener('submit', async (e)=>{
     resultBox.innerHTML = '<p style="color:#b34a3d">Could not reach the API — is the server running?</p>';
   }
 });
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); });
+}, {threshold:0.15});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 </script>
 </body>
 </html>

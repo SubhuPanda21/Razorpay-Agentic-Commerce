@@ -2,7 +2,7 @@
 import os
 
 from fastapi import FastAPI, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -31,6 +31,25 @@ def _startup():
 @app.get("/")
 def root():
     return FileResponse(FRONTEND_INDEX)
+
+
+@app.get("/robots.txt")
+def robots():
+    return Response(
+        "User-agent: *\nAllow: /\nSitemap: https://razorpay-agentic-commerce-d5ii.onrender.com/sitemap.xml",
+        media_type="text/plain",
+    )
+
+
+@app.get("/sitemap.xml")
+def sitemap():
+    return Response(
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        '<url><loc>https://razorpay-agentic-commerce-d5ii.onrender.com/</loc></url>'
+        '</urlset>',
+        media_type="application/xml",
+    )
 
 
 class PurchaseRequest(BaseModel):
