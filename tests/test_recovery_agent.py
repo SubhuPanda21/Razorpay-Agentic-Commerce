@@ -7,12 +7,24 @@ class AlwaysFailGateway(PaymentGateway):
     def charge(self, order_id, amount, method, attempt_seed=0):
         return PaymentResult(success=False, gateway_ref="", failure_reason="network_error")
 
+    def create_checkout_order(self, order_id, amount):
+        return {"mode": "mock", "razorpay_order_id": f"mock_{order_id}", "amount": amount, "currency": "INR", "key_id": None}
+
+    def verify_and_capture(self, order_id, payload):
+        return self.charge(order_id, payload.get("amount", 0), payload.get("method", "upi"))
+
 
 class SucceedOnThirdGateway(PaymentGateway):
     def charge(self, order_id, amount, method, attempt_seed=0):
         if attempt_seed >= 2:
             return PaymentResult(success=True, gateway_ref="ref123")
         return PaymentResult(success=False, gateway_ref="", failure_reason="bank_timeout")
+
+    def create_checkout_order(self, order_id, amount):
+        return {"mode": "mock", "razorpay_order_id": f"mock_{order_id}", "amount": amount, "currency": "INR", "key_id": None}
+
+    def verify_and_capture(self, order_id, payload):
+        return self.charge(order_id, payload.get("amount", 0), payload.get("method", "upi"))
 
 
 def _make_order(db_session):

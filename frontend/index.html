@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>SpendRail — an AI checkout that explains every rupee</title>
+<title>Agentic Commerce — an AI checkout that explains every rupee</title>
 <meta name="google-site-verification" content="SCdkaEa4mxnIZgTYnyv-eo-kb-gmyZkDvKFfSoe9tbM" />
 <meta name="description" content="An AI buyer agent that can't spend past what it's told and can't hide what happened. A checkout pipeline gated by policy, scored for risk, backed by recovery, closed by reconciliation. Built for the Razorpay AI Buildathon.">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%231c1a17%22/><circle cx=%2250%22 cy=%2250%22 r=%2222%22 fill=%22%23d9772e%22/></svg>">
 
-<meta property="og:title" content="SpendRail — an AI checkout that explains every rupee">
+<meta property="og:title" content="Agentic Commerce — an AI checkout that explains every rupee">
 <meta property="og:description" content="One AI buyer agent. Policy-gated, risk-scored, recovery-backed, reconciled. Every rupee explainable.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://razorpay-agentic-commerce-d5ii.onrender.com/">
 
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="SpendRail — an AI checkout that explains every rupee">
+<meta name="twitter:title" content="Agentic Commerce — an AI checkout that explains every rupee">
 <meta name="twitter:description" content="One AI buyer agent. Policy-gated, risk-scored, recovery-backed, reconciled.">
 <style>
   :root{
@@ -175,7 +175,7 @@
 <body>
 
 <nav>
-<b>Spend<span class="accent">Rail</span></b>
+  <b>Agentic <span class="accent">Commerce</span></b>
   <div><a href="#how">How it works</a><a href="#modules">Modules</a><a href="/about">About</a><a href="/docs" target="_blank">API Docs</a><a href="#play">Playground</a></div>
 </nav>
 
@@ -306,8 +306,8 @@
 </div>
 
 <div class="reveal play wrap" id="play">
-  <h2 class="serif">Live Playground</h2>
-  <p style="color:#8a8272;font-size:14px;margin-top:-8px">This calls the real API. Every line below is what actually happened, in order.</p>
+  <h2 class="serif">Run a Real Order</h2>
+  <p style="color:#8a8272;font-size:14px;margin-top:-8px">This calls the live API and, when Razorpay test-mode keys are configured, opens an actual Razorpay checkout. No keys configured yet still runs the full pipeline against the deterministic simulator.</p>
   <form id="purchaseForm">
     <div><label>Buyer agent ID</label><input name="buyer_agent_id" value="agent-demo-1"></div>
     <div><label>What do you want to buy?</label><input name="query" value="coffee set"></div>
@@ -360,26 +360,73 @@ async function typeTrail(trail){
   }
 }
 
+function loadRazorpayScript(){
+  return new Promise((resolve)=>{
+    if (window.Razorpay) return resolve();
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload = resolve;
+    document.body.appendChild(s);
+  });
+}
+
+const colors = {paid:'#4c7a5b', recovered:'#4c7a5b', failed:'#b34a3d', blocked:'#b34a3d', policy_rejected:'#b8862f'};
+
+async function confirmPayment(orderId, method, payload){
+  const res = await fetch('/checkout/confirm', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({order_id: orderId, preferred_method: method, ...payload})});
+  const data = await res.json();
+  resultBox.innerHTML = `<p><span class="badge" style="background:${colors[data.status]||'#555'}">${data.status}</span> ${data.message}</p>`;
+  await typeTrail(data.audit_trail || []);
+}
+
 document.getElementById('purchaseForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
   const f = new FormData(e.target);
+  const method = f.get('preferred_method');
   const payload = {
     merchant_id: 1,
     buyer_agent_id: f.get('buyer_agent_id'),
     query: f.get('query'),
     quantity: parseInt(f.get('quantity')||'1'),
-    preferred_method: f.get('preferred_method'),
     authorized: f.get('authorized') === 'true',
   };
   if (f.get('budget_limit')) payload.budget_limit = parseFloat(f.get('budget_limit'));
 
-  resultBox.innerHTML = '<p style="color:#8a8272">running…</p>';
+  resultBox.innerHTML = '<p style="color:#8a8272">preparing order…</p>';
   try{
-    const res = await fetch('/purchase', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    const res = await fetch('/checkout/prepare', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
     const data = await res.json();
-    const colors = {paid:'#4c7a5b', recovered:'#4c7a5b', failed:'#b34a3d', blocked:'#b34a3d', policy_rejected:'#b8862f'};
-    resultBox.innerHTML = `<p><span class="badge" style="background:${colors[data.status]||'#555'}">${data.status}</span> ${data.message}</p>`;
-    await typeTrail(data.audit_trail || []);
+
+    if (!data.ready){
+      resultBox.innerHTML = `<p><span class="badge" style="background:${colors[data.status]||'#555'}">${data.status}</span> ${data.message}</p>`;
+      await typeTrail(data.audit_trail || []);
+      return;
+    }
+
+    const session = data.checkout;
+    if (session.mode === 'real'){
+      await loadRazorpayScript();
+      resultBox.innerHTML = '<p style="color:#8a8272">opening Razorpay checkout…</p>';
+      const rzp = new Razorpay({
+        key: session.key_id,
+        order_id: session.razorpay_order_id,
+        amount: session.amount,
+        currency: session.currency,
+        name: 'SpendRail',
+        description: f.get('query'),
+        handler: (response)=> confirmPayment(data.order_id, method, {
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature,
+        }),
+        modal: { ondismiss: ()=> confirmPayment(data.order_id, method, {}) },
+      });
+      rzp.open();
+    } else {
+      resultBox.innerHTML = '<p style="color:#8a8272">no live Razorpay keys configured — running the deterministic simulator…</p>';
+      await confirmPayment(data.order_id, method, {});
+    }
   }catch(err){
     resultBox.innerHTML = '<p style="color:#b34a3d">Could not reach the API — is the server running?</p>';
   }
