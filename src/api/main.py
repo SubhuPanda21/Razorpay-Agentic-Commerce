@@ -17,7 +17,7 @@ FRONTEND_INDEX = os.path.join(os.path.dirname(__file__), "..", "..", "frontend",
 FRONTEND_ABOUT = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "about.html")
 
 app = FastAPI(
-    title="Razorpay Agentic Commerce",
+    title="SpendRail",
     description="An AI buyer-agent checkout flow gated by risk, backed by recovery, closed by reconciliation.",
     version="1.0.0",
 )
