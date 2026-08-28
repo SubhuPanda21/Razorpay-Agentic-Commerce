@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Merchant Dashboard — SpendRail</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%231c1a17%22/><circle cx=%2250%22 cy=%2250%22 r=%2222%22 fill=%22%23d9772e%22/></svg>">
+<style>
+  :root{--ink:#1c1a17;--paper:#faf6ef;--accent:#d9772e;--line:#e7ddcd;--ok:#4c7a5b;--warn:#b8862f;--bad:#b34a3d}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif}
+  h1,.serif{font-family:Georgia,serif}
+  nav{display:flex;justify-content:space-between;align-items:center;padding:20px 40px;border-bottom:1px solid var(--line)}
+  nav a{color:#6b6459;text-decoration:none;font-size:14px;margin-left:22px}
+  .wrap{max-width:1000px;margin:0 auto;padding:40px 24px}
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:30px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center}
+  .stat b{display:block;font-size:24px;color:var(--accent)}
+  .stat span{font-size:11px;color:#8a8272;letter-spacing:.03em}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{padding:12px 14px;text-align:left;font-size:13px;border-bottom:1px solid var(--line)}
+  th{color:#8a8272;font-weight:600;font-size:11px;letter-spacing:.05em}
+  .badge{display:inline-block;padding:2px 9px;border-radius:14px;font-size:11px;font-weight:600;color:#fff}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;margin-top:20px}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" style="text-decoration:none"><b style="color:var(--ink)">Spend<span style="color:var(--accent)">Rail</span></b></a>
+  <div><a href="/#how">How it works</a><a href="/about">About</a><a href="/docs" target="_blank">API Docs</a><a href="/dashboard">Dashboard</a></div>
+</nav>
+<div class="wrap">
+  <h1 class="serif">Merchant Dashboard</h1>
+  <p style="color:#6b6459">Live from the same database every order in the pipeline writes to — nothing here is staged.</p>
+
+  <div class="stats" id="stats"><p>loading…</p></div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Recent orders</h3>
+    <table>
+      <thead><tr><th>ID</th><th>Product</th><th>Amount</th><th>Status</th><th>When</th></tr></thead>
+      <tbody id="orderRows"><tr><td colspan="5">loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+<script>
+const colors = {paid:'#4c7a5b', recovered:'#4c7a5b', failed:'#b34a3d', blocked:'#b34a3d', policy_rejected:'#b8862f', created:'#8a8272'};
+fetch('/dashboard/summary').then(r=>r.json()).then(d=>{
+  const c = d.status_counts || {};
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><b>${d.total_orders}</b><span>TOTAL ORDERS</span></div>
+    <div class="stat"><b>${c.paid||0}</b><span>PAID</span></div>
+    <div class="stat"><b>${c.recovered||0}</b><span>RECOVERED</span></div>
+    <div class="stat"><b>${d.risk_flagged}</b><span>RISK FLAGGED</span></div>
+    <div class="stat"><b>${Math.round((d.finance.match_rate||0)*100)}%</b><span>RECONCILED</span></div>
+  `;
+  document.getElementById('orderRows').innerHTML = d.recent_orders.map(o=>
+    `<tr><td>#${o.id}</td><td>${o.product||'—'}</td><td>₹${o.amount}</td>
+     <td><span class="badge" style="background:${colors[o.status]||'#555'}">${o.status}</span></td>
+     <td>${new Date(o.created_at).toLocaleString()}</td></tr>`
+  ).join('') || '<tr><td colspan="5">No orders yet — run one from the Playground.</td></tr>';
+}).catch(()=>{ document.getElementById('stats').innerHTML = '<p style="color:#b34a3d">Could not load dashboard data.</p>'; });
+</script>
+</body>
+</html>

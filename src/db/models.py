@@ -47,6 +47,7 @@ class Order(Base):
     quantity = Column(Integer, default=1)
     total_amount = Column(Float, nullable=False)
     status = Column(String(30), default="created")
+    razorpay_order_id = Column(String(80), nullable=True)  # links webhooks back to this order
     # created -> risk_checked -> paid / recovered / failed / blocked
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 

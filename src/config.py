@@ -20,6 +20,10 @@ class Settings:
     # Recovery bounds (Track 3 - bounded, with stopping rules)
     recovery_max_attempts: int = int(os.getenv("RECOVERY_MAX_ATTEMPTS", "3"))
 
+    # Webhook signature verification (separate secret from API keys, set in
+    # the Razorpay dashboard's webhook settings)
+    razorpay_webhook_secret: str = os.getenv("RAZORPAY_WEBHOOK_SECRET", "")
+
     # Policy engine (hard, non-overridable business rules - distinct from risk_agent's
     # probabilistic fraud signals). No LLM/agent decision can bypass these.
     default_order_cap: float = float(os.getenv("DEFAULT_ORDER_CAP", "20000"))

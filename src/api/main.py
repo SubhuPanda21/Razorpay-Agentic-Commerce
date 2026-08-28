@@ -1,20 +1,22 @@
 """FastAPI application - the deployable surface of the whole system."""
 import os
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.db.database import get_session, init_db
 from src.db.models import Product, Order
-from src.agents.orchestrator import run_checkout, prepare_checkout, finalize_payment
+from src.config import settings
+from src.agents.orchestrator import run_checkout, prepare_checkout, finalize_payment, finalize_from_webhook
 from src.agents.finance_agent import summary as finance_summary
 from src.audit.audit_log import get_trail
 from scripts.seed_data import seed as seed_catalog
 
 FRONTEND_INDEX = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "index.html")
 FRONTEND_ABOUT = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "about.html")
+FRONTEND_DASHBOARD = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dashboard.html")
 
 app = FastAPI(
     title="Razorpay Agentic Commerce",
@@ -37,6 +39,11 @@ def root():
 @app.get("/about")
 def about():
     return FileResponse(FRONTEND_ABOUT)
+
+
+@app.get("/dashboard")
+def dashboard():
+    return FileResponse(FRONTEND_DASHBOARD)
 
 
 @app.get("/robots.txt")
@@ -202,3 +209,84 @@ def order_audit(order_id: int, db: Session = Depends(get_session)):
 @app.get("/finance/summary")
 def get_finance_summary(db: Session = Depends(get_session)):
     return finance_summary(db)
+
+
+@app.post("/webhooks/razorpay")
+async def razorpay_webhook(request: Request, db: Session = Depends(get_session)):
+    """Real Razorpay webhook receiver - the server-side safety net.
+
+    The client-side checkout handler covers the common case, but if the
+    browser closes before it fires, this is what still finalizes the
+    order correctly. Signature verified against RAZORPAY_WEBHOOK_SECRET
+    (set separately from the API keys, in the Razorpay dashboard).
+    """
+    import hashlib
+    import hmac
+    import json
+
+    body = await request.body()
+    signature = request.headers.get("X-Razorpay-Signature", "")
+
+    if settings.razorpay_webhook_secret:
+        expected = hmac.new(settings.razorpay_webhook_secret.encode(), body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, signature):
+            raise HTTPException(400, "Invalid webhook signature")
+
+    payload = json.loads(body)
+    event_type = payload.get("event", "")
+    payment_entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
+    rp_order_id = payment_entity.get("order_id")
+    payment_id = payment_entity.get("id", "")
+
+    if not rp_order_id:
+        return {"status": "ignored", "reason": "no order_id in payload"}
+
+    order = db.query(Order).filter(Order.razorpay_order_id == rp_order_id).first()
+    if not order:
+        return {"status": "ignored", "reason": "unknown order"}
+
+    finalize_from_webhook(db, order, event_type, payment_id)
+    return {"status": "processed", "order_id": order.id, "event": event_type}
+
+
+@app.get("/orders")
+def list_orders(limit: int = 20, db: Session = Depends(get_session)):
+    orders = db.query(Order).order_by(Order.created_at.desc()).limit(limit).all()
+    return [
+        {
+            "id": o.id,
+            "buyer_agent_id": o.buyer_agent_id,
+            "product": o.product.name if o.product else None,
+            "amount": o.total_amount,
+            "status": o.status,
+            "created_at": o.created_at.isoformat(),
+        }
+        for o in orders
+    ]
+
+
+@app.get("/dashboard/summary")
+def dashboard_summary(db: Session = Depends(get_session)):
+    from src.db.models import RiskAssessment
+
+    all_orders = db.query(Order).all()
+    counts = {}
+    for o in all_orders:
+        counts[o.status] = counts.get(o.status, 0) + 1
+
+    blocked_or_held = db.query(RiskAssessment).filter(RiskAssessment.decision.in_(["block", "hold"])).count()
+
+    return {
+        "total_orders": len(all_orders),
+        "status_counts": counts,
+        "risk_flagged": blocked_or_held,
+        "finance": finance_summary(db),
+        "recent_orders": [
+            {
+                "id": o.id, "product": o.product.name if o.product else None,
+                "amount": o.total_amount, "status": o.status,
+                "created_at": o.created_at.isoformat(),
+            }
+            for o in sorted(all_orders, key=lambda x: x.created_at, reverse=True)[:15]
+        ],
+    }

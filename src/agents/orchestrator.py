@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from src.agents import shopping_agent, risk_agent, recovery_agent, finance_agent
 from src.policies import policy_engine
 from src.tools import order_tools, payment_tools
-from src.gateway.razorpay_client import get_gateway
+from src.gateway.razorpay_client import get_gateway, PaymentResult
 from src.audit.audit_log import record, get_trail
 
 
@@ -89,6 +89,8 @@ def prepare_checkout(
         return PrepareResult(order, False, "blocked", "Order blocked by risk gate.", audit_trail=get_trail(db, order.id))
 
     session = gateway.create_checkout_order(order.id, order.total_amount)
+    order.razorpay_order_id = session["razorpay_order_id"]
+    db.commit()
     record(db, "checkout_agent", "checkout_session_created", {"mode": session["mode"], "razorpay_order_id": session["razorpay_order_id"]}, order.id)
 
     return PrepareResult(order, True, "ready_for_payment", "Ready for payment.", checkout_session=session, audit_trail=get_trail(db, order.id))
@@ -132,6 +134,37 @@ def _payment_attempt_row(order, method, result):
         status="success" if result.success else "failed",
         failure_reason=result.failure_reason, gateway_ref=result.gateway_ref,
     )
+
+
+def finalize_from_webhook(db: Session, order, event_type: str, payment_id: str):
+    """Webhook-driven finalization: authoritative and idempotent.
+
+    The webhook's own signature check (done by the caller before this
+    function runs) is the authorization - no need to re-verify with
+    Razorpay again here. Guards against double-processing if the
+    browser's own confirm already finalized this order first.
+    """
+    if order.status in ("paid", "recovered", "failed"):
+        record(db, "webhook", "duplicate_ignored", {"event": event_type, "current_status": order.status}, order.id)
+        return
+
+    gateway = get_gateway()
+    method = order.payment_attempts[-1].method if order.payment_attempts else "upi"
+
+    if event_type in ("payment.captured", "order.paid"):
+        db.add(_payment_attempt_row(order, method, PaymentResult(success=True, gateway_ref=payment_id)))
+        order.status = "paid"
+        db.commit()
+        record(db, "webhook", "payment_captured", {"payment_id": payment_id}, order.id)
+    elif event_type == "payment.failed":
+        db.add(_payment_attempt_row(order, method, PaymentResult(success=False, gateway_ref="", failure_reason="webhook_reported_failure")))
+        db.commit()
+        record(db, "webhook", "payment_failed", {"payment_id": payment_id}, order.id)
+        order = recovery_agent.recover(db, order, gateway, "webhook_reported_failure")
+
+    if order.status in ("paid", "recovered"):
+        order_tools.deduct_stock(db, order.product, order.quantity)
+        finance_agent.reconcile(db, order)
 
 
 def run_checkout(
