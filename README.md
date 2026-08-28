@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛒 Razorpay Agentic Commerce
+# 🛒 SpendRail
 
 **An AI buyer-agent checkout system — gated by policy, scored for risk, backed by recovery, closed by reconciliation.**
 
