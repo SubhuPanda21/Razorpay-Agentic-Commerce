@@ -18,7 +18,17 @@ class Merchant(Base):
     __tablename__ = "merchants"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(120), nullable=False)
+    name = Column(String(120), nullable=False)  # organization / display label
+
+    # Real account fields - nullable so the seeded demo merchant (id=1,
+    # used by the public homepage/dashboard) needs none of these.
+    email = Column(String(160), unique=True, nullable=True)
+    password_hash = Column(String(160), nullable=True)
+    api_key = Column(String(64), unique=True, nullable=True)
+    display_name = Column(String(80), nullable=True)
+    role = Column(String(80), nullable=True)
+    building_description = Column(String(400), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     products = relationship("Product", back_populates="merchant")
 

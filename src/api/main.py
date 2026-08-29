@@ -1,5 +1,6 @@
 """FastAPI application - the deployable surface of the whole system."""
 import os
+import secrets
 
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, Response
@@ -7,19 +8,27 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.db.database import get_session, init_db
-from src.db.models import Product, Order
+from src.db.models import Product, Order, Merchant, ReconciliationRecord
 from src.config import settings
 from src.agents.orchestrator import run_checkout, prepare_checkout, finalize_payment, finalize_from_webhook
 from src.agents.finance_agent import summary as finance_summary
 from src.audit.audit_log import get_trail
 from scripts.seed_data import seed as seed_catalog
+from src.auth.security import hash_password, verify_password, create_session_token, verify_session_token
 
 FRONTEND_INDEX = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "index.html")
 FRONTEND_ABOUT = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "about.html")
 FRONTEND_DASHBOARD = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dashboard.html")
+_FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
+FRONTEND_SIGNUP = os.path.join(_FRONTEND_DIR, "signup.html")
+FRONTEND_SIGNIN = os.path.join(_FRONTEND_DIR, "signin.html")
+FRONTEND_ONBOARDING = os.path.join(_FRONTEND_DIR, "onboarding.html")
+FRONTEND_PORTAL_DASHBOARD = os.path.join(_FRONTEND_DIR, "portal-dashboard.html")
+FRONTEND_PORTAL_APIKEYS = os.path.join(_FRONTEND_DIR, "portal-apikeys.html")
+FRONTEND_PORTAL_PROFILE = os.path.join(_FRONTEND_DIR, "portal-profile.html")
 
 app = FastAPI(
-    title="Razorpay Agentic Commerce",
+    title="SpendRail",
     description="An AI buyer-agent checkout flow gated by risk, backed by recovery, closed by reconciliation.",
     version="1.0.0",
 )
@@ -44,6 +53,147 @@ def about():
 @app.get("/dashboard")
 def dashboard():
     return FileResponse(FRONTEND_DASHBOARD)
+
+
+@app.get("/signup")
+def signup_page():
+    return FileResponse(FRONTEND_SIGNUP)
+
+
+@app.get("/signin")
+def signin_page():
+    return FileResponse(FRONTEND_SIGNIN)
+
+
+@app.get("/onboarding")
+def onboarding_page():
+    return FileResponse(FRONTEND_ONBOARDING)
+
+
+@app.get("/portal/dashboard")
+def portal_dashboard_page():
+    return FileResponse(FRONTEND_PORTAL_DASHBOARD)
+
+
+@app.get("/portal/api-keys")
+def portal_apikeys_page():
+    return FileResponse(FRONTEND_PORTAL_APIKEYS)
+
+
+@app.get("/portal/profile")
+def portal_profile_page():
+    return FileResponse(FRONTEND_PORTAL_PROFILE)
+
+
+def get_current_merchant(request: Request, db: Session = Depends(get_session)) -> Merchant:
+    token = request.cookies.get("session")
+    merchant_id = verify_session_token(token) if token else None
+    if not merchant_id:
+        raise HTTPException(401, "Not authenticated")
+    merchant = db.get(Merchant, merchant_id)
+    if not merchant:
+        raise HTTPException(401, "Not authenticated")
+    return merchant
+
+
+class SignupRequest(BaseModel):
+    email: str
+    password: str
+    organization: str
+
+
+@app.post("/auth/signup")
+def auth_signup(req: SignupRequest, response: Response, db: Session = Depends(get_session)):
+    if db.query(Merchant).filter(Merchant.email == req.email).first():
+        raise HTTPException(400, "That email is already registered.")
+    merchant = Merchant(
+        name=req.organization,
+        email=req.email,
+        password_hash=hash_password(req.password),
+        api_key=secrets.token_urlsafe(24),
+    )
+    db.add(merchant)
+    db.commit()
+    db.refresh(merchant)
+    token = create_session_token(merchant.id)
+    response.set_cookie("session", token, httponly=True, max_age=60 * 60 * 24 * 14, samesite="lax")
+    return {"id": merchant.id, "email": merchant.email}
+
+
+class SigninRequest(BaseModel):
+    email: str
+    password: str
+
+
+@app.post("/auth/signin")
+def auth_signin(req: SigninRequest, response: Response, db: Session = Depends(get_session)):
+    merchant = db.query(Merchant).filter(Merchant.email == req.email).first()
+    if not merchant or not merchant.password_hash or not verify_password(req.password, merchant.password_hash):
+        raise HTTPException(401, "Incorrect email or password.")
+    token = create_session_token(merchant.id)
+    response.set_cookie("session", token, httponly=True, max_age=60 * 60 * 24 * 14, samesite="lax")
+    return {"id": merchant.id, "email": merchant.email}
+
+
+@app.post("/auth/logout")
+def auth_logout(response: Response):
+    response.delete_cookie("session")
+    return {"status": "logged_out"}
+
+
+@app.get("/auth/me")
+def auth_me(merchant: Merchant = Depends(get_current_merchant)):
+    return {
+        "id": merchant.id, "email": merchant.email, "organization": merchant.name,
+        "display_name": merchant.display_name, "role": merchant.role,
+        "building_description": merchant.building_description, "api_key": merchant.api_key,
+    }
+
+
+class OnboardingRequest(BaseModel):
+    display_name: str = ""
+    organization: str = ""
+    role: str = ""
+    building_description: str = ""
+
+
+@app.post("/auth/onboarding")
+def auth_onboarding(req: OnboardingRequest, merchant: Merchant = Depends(get_current_merchant), db: Session = Depends(get_session)):
+    merchant.display_name = req.display_name or merchant.display_name
+    merchant.name = req.organization or merchant.name
+    merchant.role = req.role or merchant.role
+    merchant.building_description = req.building_description or merchant.building_description
+    db.commit()
+    return {"status": "saved"}
+
+
+@app.post("/auth/api-key/regenerate")
+def regenerate_api_key(merchant: Merchant = Depends(get_current_merchant), db: Session = Depends(get_session)):
+    merchant.api_key = secrets.token_urlsafe(24)
+    db.commit()
+    return {"api_key": merchant.api_key}
+
+
+@app.get("/portal/data")
+def portal_data(merchant: Merchant = Depends(get_current_merchant), db: Session = Depends(get_session)):
+    orders = db.query(Order).filter(Order.merchant_id == merchant.id).order_by(Order.created_at.desc()).all()
+    counts = {}
+    for o in orders:
+        counts[o.status] = counts.get(o.status, 0) + 1
+    recon = db.query(ReconciliationRecord).join(Order).filter(Order.merchant_id == merchant.id).all()
+    matched = sum(1 for r in recon if r.matched)
+    match_rate = round(matched / len(recon), 3) if recon else 0.0
+    product_count = db.query(Product).filter(Product.merchant_id == merchant.id).count()
+    return {
+        "organization": merchant.name, "display_name": merchant.display_name,
+        "total_orders": len(orders), "status_counts": counts, "match_rate": match_rate,
+        "product_count": product_count,
+        "recent_orders": [
+            {"id": o.id, "product": o.product.name if o.product else None, "amount": o.total_amount,
+             "status": o.status, "created_at": o.created_at.isoformat()}
+            for o in orders[:15]
+        ],
+    }
 
 
 @app.get("/robots.txt")
@@ -109,7 +259,7 @@ def add_product(merchant_id: int, req: NewProduct, db: Session = Depends(get_ses
 
 
 class PrepareRequest(BaseModel):
-    merchant_id: int
+    merchant_id: int | None = None  # optional when authenticating via X-API-Key instead
     buyer_agent_id: str
     query: str
     quantity: int = 1
@@ -118,11 +268,25 @@ class PrepareRequest(BaseModel):
 
 
 @app.post("/checkout/prepare")
-def checkout_prepare(req: PrepareRequest, db: Session = Depends(get_session)):
+def checkout_prepare(req: PrepareRequest, request: Request, db: Session = Depends(get_session)):
     """Runs shop -> policy -> risk. If ready, also opens a real Razorpay
-    checkout session (or the mock equivalent) for the frontend to use."""
+    checkout session (or the mock equivalent) for the frontend to use.
+
+    An AI buyer agent (no browser, no cookie) authenticates with an
+    X-API-Key header instead - real agent-to-agent auth, not a login form.
+    """
+    merchant_id = req.merchant_id
+    api_key = request.headers.get("X-API-Key")
+    if api_key:
+        m = db.query(Merchant).filter(Merchant.api_key == api_key).first()
+        if not m:
+            raise HTTPException(401, "Invalid API key")
+        merchant_id = m.id
+    if merchant_id is None:
+        raise HTTPException(400, "Provide merchant_id or an X-API-Key header")
+
     result = prepare_checkout(
-        db, req.merchant_id, req.buyer_agent_id, req.query,
+        db, merchant_id, req.buyer_agent_id, req.query,
         req.quantity, req.budget_limit, req.authorized,
     )
     return {

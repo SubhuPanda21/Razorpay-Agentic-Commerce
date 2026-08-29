@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><title>Set up your profile — SpendRail</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+:root{--ink:#1c1a17;--paper:#faf6ef;--accent:#d9772e;--line:#e7ddcd}
+*{box-sizing:border-box} body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,Segoe UI,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:44px;width:460px}
+h1{font-family:Georgia,serif;font-size:28px;margin:0 0 6px}
+p.lede{color:#6b6459;font-size:14px;margin:0 0 26px}
+label{font-size:12px;color:#8a8272;display:block;margin:16px 0 4px}
+input,textarea{width:100%;padding:10px;border:1px solid #d8cfc0;border-radius:8px;font-size:14px;font-family:inherit}
+textarea{resize:vertical;min-height:80px}
+.row{display:flex;gap:12px;margin-top:24px}
+button{flex:1;padding:12px;border-radius:8px;font-weight:600;cursor:pointer;border:0}
+.primary{background:var(--accent);color:#fff}
+.ghost{background:#fff;border:1px solid #d8cfc0;color:var(--ink)}
+</style></head>
+<body>
+<div class="card">
+  <h1>Tell us a little about you</h1>
+  <p class="lede">Optional, and you can change it later.</p>
+  <form id="f">
+    <label>Display name</label><input name="display_name" placeholder="Meera Nair">
+    <label>Organization</label><input name="organization" placeholder="Ember & Oak Home Goods">
+    <label>Role</label><input name="role" placeholder="Operations lead">
+    <label>What are you building?</label><textarea name="building_description" placeholder="An agent that shops for our customers automatically."></textarea>
+    <div class="row">
+      <button type="submit" class="primary">Save and continue</button>
+      <button type="button" class="ghost" id="skip">Skip for now</button>
+    </div>
+  </form>
+</div>
+<script>
+async function goToDashboard(){ window.location.href = '/portal/dashboard'; }
+document.getElementById('skip').addEventListener('click', goToDashboard);
+document.getElementById('f').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const f = new FormData(e.target);
+  await fetch('/auth/onboarding', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      display_name: f.get('display_name'), organization: f.get('organization'),
+      role: f.get('role'), building_description: f.get('building_description'),
+    })});
+  goToDashboard();
+});
+</script>
+</body></html>

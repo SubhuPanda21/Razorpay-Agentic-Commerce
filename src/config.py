@@ -24,6 +24,9 @@ class Settings:
     # the Razorpay dashboard's webhook settings)
     razorpay_webhook_secret: str = os.getenv("RAZORPAY_WEBHOOK_SECRET", "")
 
+    # Session signing - set a real random value in production (Render env vars)
+    session_secret: str = os.getenv("SESSION_SECRET", "dev-insecure-secret-change-in-production")
+
     # Policy engine (hard, non-overridable business rules - distinct from risk_agent's
     # probabilistic fraud signals). No LLM/agent decision can bypass these.
     default_order_cap: float = float(os.getenv("DEFAULT_ORDER_CAP", "20000"))

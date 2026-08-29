@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><title>Sign up — SpendRail</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+:root{--ink:#1c1a17;--paper:#faf6ef;--accent:#d9772e;--line:#e7ddcd;--bad:#b34a3d}
+*{box-sizing:border-box} body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,Segoe UI,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:40px;width:380px}
+h1{font-family:Georgia,serif;font-size:26px;margin:0 0 6px}
+p.lede{color:#6b6459;font-size:14px;margin:0 0 24px}
+label{font-size:12px;color:#8a8272;display:block;margin:14px 0 4px}
+input{width:100%;padding:10px;border:1px solid #d8cfc0;border-radius:8px;font-size:14px}
+button{width:100%;background:var(--ink);color:#fff;border:0;padding:12px;border-radius:8px;font-weight:600;margin-top:20px;cursor:pointer}
+button:hover{background:#000}
+.err{color:var(--bad);font-size:13px;margin-top:10px}
+a{color:var(--accent);text-decoration:none}
+.logo{font-family:Georgia,serif;font-size:20px;margin-bottom:24px;display:block}
+</style></head>
+<body>
+<div class="card">
+  <a href="/" class="logo">Spend<span style="color:var(--accent)">Rail</span></a>
+  <h1>Create your account</h1>
+  <p class="lede">Manage your own catalog, orders, and API key.</p>
+  <form id="f">
+    <label>Organization</label><input name="organization" placeholder="Ember & Oak" required>
+    <label>Email</label><input name="email" type="email" required>
+    <label>Password</label><input name="password" type="password" minlength="6" required>
+    <button type="submit">Sign up</button>
+  </form>
+  <div class="err" id="err"></div>
+  <p style="margin-top:20px;font-size:13px;color:#6b6459">Already have an account? <a href="/signin">Sign in</a></p>
+</div>
+<script>
+document.getElementById('f').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const res = await fetch('/auth/signup', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({organization: f.get('organization'), email: f.get('email'), password: f.get('password')})});
+  if (res.ok){ window.location.href = '/onboarding'; }
+  else { const d = await res.json(); document.getElementById('err').textContent = d.detail || 'Something went wrong.'; }
+});
+</script>
+</body></html>

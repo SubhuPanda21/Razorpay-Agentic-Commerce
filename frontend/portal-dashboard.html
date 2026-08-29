@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><title>Dashboard — SpendRail</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+:root{--ink:#1c1a17;--paper:#faf6ef;--accent:#d9772e;--line:#e7ddcd;--ok:#4c7a5b;--warn:#b8862f;--bad:#b34a3d}
+*{box-sizing:border-box} body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,Segoe UI,sans-serif;display:flex;min-height:100vh}
+.sidebar{width:220px;border-right:1px solid var(--line);padding:26px 18px;flex-shrink:0}
+.sidebar .logo{font-family:Georgia,serif;font-size:19px;display:block;margin-bottom:30px;text-decoration:none;color:var(--ink)}
+.sidebar a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#6b6459;text-decoration:none;font-size:14px;margin-bottom:2px}
+.sidebar a.active{background:#fff;color:var(--ink);font-weight:600;border:1px solid var(--line)}
+.sidebar a:hover{background:#fff}
+main{flex:1;padding:40px}
+h1{font-family:Georgia,serif;font-size:28px;margin:0 0 6px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:24px 0}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center}
+.stat b{display:block;font-size:24px;color:var(--accent)}
+.stat span{font-size:11px;color:#8a8272}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{padding:12px 14px;text-align:left;font-size:13px;border-bottom:1px solid var(--line)}
+th{color:#8a8272;font-weight:600;font-size:11px}
+.badge{padding:2px 9px;border-radius:14px;font-size:11px;font-weight:600;color:#fff}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;margin-top:20px}
+</style></head>
+<body>
+<div class="sidebar">
+  <a href="/" class="logo">Spend<span style="color:var(--accent)">Rail</span></a>
+  <a href="/portal/dashboard" class="active">Dashboard</a>
+  <a href="/#play" target="_blank">Playground</a>
+  <a href="/portal/api-keys">API Keys</a>
+  <a href="/docs" target="_blank">API Docs</a>
+  <a href="/about">About</a>
+  <a href="/portal/profile">Profile</a>
+  <a href="#" id="logout">Logout</a>
+</div>
+<main>
+  <h1 id="orgName">Dashboard</h1>
+  <p style="color:#6b6459">Your own orders, gated and reconciled the same way as everyone else's.</p>
+  <div class="stats" id="stats"><p>loading…</p></div>
+  <div class="card">
+    <h3 style="margin-top:0">Recent orders</h3>
+    <table><thead><tr><th>ID</th><th>Product</th><th>Amount</th><th>Status</th><th>When</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="5">loading…</td></tr></tbody></table>
+  </div>
+</main>
+<script>
+const colors = {paid:'#4c7a5b', recovered:'#4c7a5b', failed:'#b34a3d', blocked:'#b34a3d', policy_rejected:'#b8862f', created:'#8a8272'};
+fetch('/portal/data').then(r=>{ if(!r.ok) throw 0; return r.json(); }).then(d=>{
+  document.getElementById('orgName').textContent = d.organization || 'Dashboard';
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><b>${d.total_orders}</b><span>ORDERS</span></div>
+    <div class="stat"><b>${d.status_counts.paid||0}</b><span>PAID</span></div>
+    <div class="stat"><b>${Math.round((d.match_rate||0)*100)}%</b><span>RECONCILED</span></div>
+    <div class="stat"><b>${d.product_count}</b><span>PRODUCTS</span></div>`;
+  document.getElementById('rows').innerHTML = d.recent_orders.map(o=>
+    `<tr><td>#${o.id}</td><td>${o.product||'—'}</td><td>₹${o.amount}</td>
+     <td><span class="badge" style="background:${colors[o.status]||'#555'}">${o.status}</span></td>
+     <td>${new Date(o.created_at).toLocaleString()}</td></tr>`).join('')
+     || '<tr><td colspan="5">No orders yet. Add products via the API and run one from the Playground with your API key.</td></tr>';
+}).catch(()=>{ window.location.href = '/signin'; });
+document.getElementById('logout').addEventListener('click', async (e)=>{
+  e.preventDefault(); await fetch('/auth/logout', {method:'POST'}); window.location.href = '/';
+});
+</script>
+</body></html>

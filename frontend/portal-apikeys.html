@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><title>API Keys — SpendRail</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+:root{--ink:#1c1a17;--paper:#faf6ef;--accent:#d9772e;--line:#e7ddcd}
+*{box-sizing:border-box} body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,Segoe UI,sans-serif;display:flex;min-height:100vh}
+.sidebar{width:220px;border-right:1px solid var(--line);padding:26px 18px;flex-shrink:0}
+.sidebar .logo{font-family:Georgia,serif;font-size:19px;display:block;margin-bottom:30px;text-decoration:none;color:var(--ink)}
+.sidebar a{display:block;padding:10px 12px;border-radius:8px;color:#6b6459;text-decoration:none;font-size:14px;margin-bottom:2px}
+.sidebar a.active{background:#fff;color:var(--ink);font-weight:600;border:1px solid var(--line)}
+main{flex:1;padding:40px;max-width:700px}
+h1{font-family:Georgia,serif;font-size:28px;margin:0 0 6px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px;margin-top:20px}
+code.key{display:block;background:#0e0e0e;color:#8bc48a;padding:14px;border-radius:8px;font-size:14px;word-break:break-all;margin:14px 0}
+pre{background:#0e0e0e;color:#d7e6d1;padding:16px;border-radius:8px;font-size:12.5px;overflow-x:auto}
+button{background:var(--ink);color:#fff;border:0;padding:9px 16px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px}
+</style></head>
+<body>
+<div class="sidebar">
+  <a href="/" class="logo">Spend<span style="color:var(--accent)">Rail</span></a>
+  <a href="/portal/dashboard">Dashboard</a>
+  <a href="/#play" target="_blank">Playground</a>
+  <a href="/portal/api-keys" class="active">API Keys</a>
+  <a href="/docs" target="_blank">API Docs</a>
+  <a href="/about">About</a>
+  <a href="/portal/profile">Profile</a>
+  <a href="#" id="logout">Logout</a>
+</div>
+<main>
+  <h1>API Keys</h1>
+  <p style="color:#6b6459">This is what an AI buyer agent uses to authenticate — not a login form. No cookie, no browser session, just a header.</p>
+  <div class="card">
+    <b>Your key</b>
+    <code class="key" id="key">loading…</code>
+    <button id="regen">Regenerate key</button>
+  </div>
+  <div class="card">
+    <b>Usage</b>
+    <pre id="example">loading…</pre>
+  </div>
+</main>
+<script>
+function render(key){
+  document.getElementById('key').textContent = key;
+  document.getElementById('example').textContent =
+`curl -X POST https://your-domain/checkout/prepare \\
+  -H "X-API-Key: ${key}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"buyer_agent_id":"my-agent-01","query":"wool throw blanket"}'`;
+}
+fetch('/auth/me').then(r=>{ if(!r.ok) throw 0; return r.json(); }).then(d=>render(d.api_key)).catch(()=>window.location.href='/signin');
+document.getElementById('regen').addEventListener('click', async ()=>{
+  const res = await fetch('/auth/api-key/regenerate', {method:'POST'});
+  const d = await res.json(); render(d.api_key);
+});
+document.getElementById('logout').addEventListener('click', async (e)=>{
+  e.preventDefault(); await fetch('/auth/logout', {method:'POST'}); window.location.href = '/';
+});
+</script>
+</body></html>
