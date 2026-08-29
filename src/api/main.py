@@ -371,8 +371,11 @@ def order_audit(order_id: int, db: Session = Depends(get_session)):
 
 
 @app.get("/finance/summary")
-def get_finance_summary(db: Session = Depends(get_session)):
-    return finance_summary(db)
+def get_finance_summary(merchant: Merchant = Depends(get_current_merchant), db: Session = Depends(get_session)):
+    """Requires login now - this used to return every merchant's
+    reconciliation data to anyone, unauthenticated. Scoped per-merchant now,
+    consistent with /portal/data."""
+    return finance_summary(db, merchant_id=merchant.id)
 
 
 @app.post("/webhooks/razorpay")
@@ -431,20 +434,29 @@ def list_orders(limit: int = 20, db: Session = Depends(get_session)):
 
 @app.get("/dashboard/summary")
 def dashboard_summary(db: Session = Depends(get_session)):
+    """Public demo dashboard - scoped to the seeded demo merchant (id=1)
+    only. Signed-up merchants have their own isolated data at /portal/data."""
     from src.db.models import RiskAssessment
 
-    all_orders = db.query(Order).all()
+    DEMO_MERCHANT_ID = 1
+    all_orders = db.query(Order).filter(Order.merchant_id == DEMO_MERCHANT_ID).all()
     counts = {}
     for o in all_orders:
         counts[o.status] = counts.get(o.status, 0) + 1
 
-    blocked_or_held = db.query(RiskAssessment).filter(RiskAssessment.decision.in_(["block", "hold"])).count()
+    demo_order_ids = [o.id for o in all_orders]
+    blocked_or_held = (
+        db.query(RiskAssessment)
+        .filter(RiskAssessment.decision.in_(["block", "hold"]), RiskAssessment.order_id.in_(demo_order_ids))
+        .count()
+        if demo_order_ids else 0
+    )
 
     return {
         "total_orders": len(all_orders),
         "status_counts": counts,
         "risk_flagged": blocked_or_held,
-        "finance": finance_summary(db),
+        "finance": finance_summary(db, merchant_id=DEMO_MERCHANT_ID),
         "recent_orders": [
             {
                 "id": o.id, "product": o.product.name if o.product else None,

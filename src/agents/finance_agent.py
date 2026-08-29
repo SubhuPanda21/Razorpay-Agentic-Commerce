@@ -44,9 +44,14 @@ def reconcile(db: Session, order: Order) -> ReconciliationRecord:
     return rec
 
 
-def summary(db: Session) -> dict:
-    """Match-rate + exception list across all reconciled orders - not just one cherry-picked case."""
-    records = db.query(ReconciliationRecord).all()
+def summary(db: Session, merchant_id: int | None = None) -> dict:
+    """Match-rate + exception list. Scoped to one merchant when given -
+    otherwise this would leak every merchant's reconciliation data into
+    whichever dashboard called it."""
+    query = db.query(ReconciliationRecord)
+    if merchant_id is not None:
+        query = query.join(Order).filter(Order.merchant_id == merchant_id)
+    records = query.all()
     total = len(records)
     matched = sum(1 for r in records if r.matched)
     exceptions = [

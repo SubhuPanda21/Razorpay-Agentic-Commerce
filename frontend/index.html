@@ -309,6 +309,15 @@
 <div class="reveal play wrap" id="play">
   <h2 class="serif">Run a Real Order</h2>
   <p style="color:#8a8272;font-size:14px;margin-top:-8px">This calls the live API and, when Razorpay test-mode keys are configured, opens an actual Razorpay checkout. No keys configured yet still runs the full pipeline against the deterministic simulator.</p>
+  <div id="acctBanner" style="background:#faf3ea;border:1px solid var(--line);border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:16px"></div>
+  <div id="quickAdd" style="display:none;background:#fff;border:1px solid var(--accent);border-radius:8px;padding:14px;margin-bottom:16px">
+    <b style="font-size:13px">Your catalog is empty — add one product to test checkout</b>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <input id="qaName" placeholder="Product name" style="flex:2;padding:8px;border:1px solid #d8cfc0;border-radius:6px">
+      <input id="qaPrice" placeholder="Price ₹" type="number" style="flex:1;padding:8px;border:1px solid #d8cfc0;border-radius:6px">
+      <button type="button" id="qaSubmit" style="background:var(--accent);color:#fff;border:0;padding:8px 14px;border-radius:6px;font-weight:600;cursor:pointer">Add</button>
+    </div>
+  </div>
   <form id="purchaseForm">
     <div><label>Buyer agent ID</label><input name="buyer_agent_id" value="agent-demo-1"></div>
     <div><label>What do you want to buy?</label><input name="query" value="coffee set"></div>
@@ -373,6 +382,41 @@ function loadRazorpayScript(){
 
 const colors = {paid:'#4c7a5b', recovered:'#4c7a5b', failed:'#b34a3d', blocked:'#b34a3d', policy_rejected:'#b8862f'};
 
+// --- Account detection: which merchant does the Playground write to? ---
+let activeMerchantId = 1;   // falls back to the public demo merchant for guests
+let isLoggedIn = false;
+
+async function detectAccountAndCatalog(){
+  const banner = document.getElementById('acctBanner');
+  const quickAdd = document.getElementById('quickAdd');
+  try{
+    const me = await fetch('/auth/me');
+    if (me.ok){
+      const d = await me.json();
+      isLoggedIn = true;
+      activeMerchantId = d.id;
+      banner.innerHTML = `Signed in as <b>${d.organization || d.email}</b> — orders below save to your own account. <a href="/portal/dashboard" style="color:var(--accent)">View dashboard →</a>`;
+      const cat = await fetch('/catalog/' + activeMerchantId).then(r=>r.json());
+      if (Array.isArray(cat) && cat.length === 0) quickAdd.style.display = 'block';
+      return;
+    }
+  }catch(err){}
+  isLoggedIn = false;
+  activeMerchantId = 1;
+  banner.innerHTML = `Browsing as guest — using the public demo catalog. <a href="/signup" style="color:var(--accent)">Sign up</a> to run orders against your own account.`;
+}
+detectAccountAndCatalog();
+
+document.getElementById('qaSubmit').addEventListener('click', async ()=>{
+  const name = document.getElementById('qaName').value.trim();
+  const price = parseFloat(document.getElementById('qaPrice').value);
+  if (!name || !price) return;
+  await fetch(`/catalog/${activeMerchantId}/products`, {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({name, price, stock: 10})});
+  document.getElementById('quickAdd').style.display = 'none';
+  document.querySelector('#purchaseForm input[name="query"]').value = name;
+});
+
 async function confirmPayment(orderId, method, payload){
   const res = await fetch('/checkout/confirm', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({order_id: orderId, preferred_method: method, ...payload})});
@@ -386,7 +430,7 @@ document.getElementById('purchaseForm').addEventListener('submit', async (e)=>{
   const f = new FormData(e.target);
   const method = f.get('preferred_method');
   const payload = {
-    merchant_id: 1,
+    merchant_id: activeMerchantId,
     buyer_agent_id: f.get('buyer_agent_id'),
     query: f.get('query'),
     quantity: parseInt(f.get('quantity')||'1'),
