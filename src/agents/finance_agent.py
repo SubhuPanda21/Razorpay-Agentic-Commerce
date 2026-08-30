@@ -11,6 +11,13 @@ from src.audit.audit_log import record
 
 
 def reconcile(db: Session, order: Order) -> ReconciliationRecord:
+    # Idempotent by design: a duplicate call (double-confirm, webhook race)
+    # returns the existing record instead of violating the one-per-order
+    # unique constraint.
+    existing = db.query(ReconciliationRecord).filter(ReconciliationRecord.order_id == order.id).first()
+    if existing:
+        return existing
+
     successful_attempt = next(
         (a for a in order.payment_attempts if a.status == "success"), None
     )

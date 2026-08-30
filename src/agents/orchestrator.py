@@ -98,7 +98,17 @@ def prepare_checkout(
 
 def finalize_payment(db: Session, order, preferred_method: str, payload: dict) -> CheckoutResult:
     """Steps 5-7: confirm payment (real signature verification or the
-    simulator), recover on failure, reconcile on success."""
+    simulator), recover on failure, reconcile on success.
+
+    Idempotent: Razorpay's checkout widget can fire both the success
+    handler and the dismiss callback for the same payment, and the
+    webhook can race with the browser's own confirm call. Reprocessing
+    an already-finalized order must be a no-op, not a crash.
+    """
+    if order.status in ("paid", "recovered", "failed", "blocked", "policy_rejected"):
+        record(db, "checkout_agent", "confirm_ignored_already_finalized", {"status": order.status}, order.id)
+        return CheckoutResult(order.id, order.status, f"Order #{order.id} already finalized as '{order.status}'.", get_trail(db, order.id))
+
     gateway = get_gateway()
     payload = {**payload, "amount": order.total_amount, "method": preferred_method}
 
