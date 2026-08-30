@@ -23,7 +23,7 @@ def search_catalog(db: Session, query: str, merchant_id: int, top_k: int = 3) ->
         return sum(1 for t in query_terms if t in haystack)
 
     ranked = sorted(products, key=score, reverse=True)
-    ranked = [p for p in ranked if score(p) > 0] or products  # fall back to full catalog
+    ranked = [p for p in ranked if score(p) > 0]  # no silent fallback - no match means no match
     return ranked[:top_k]
 
 
