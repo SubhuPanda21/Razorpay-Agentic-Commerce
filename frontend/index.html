@@ -421,6 +421,10 @@ async function confirmPayment(orderId, method, payload){
   const res = await fetch('/checkout/confirm', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({order_id: orderId, preferred_method: method, ...payload})});
   const data = await res.json();
+  if (!res.ok){
+    resultBox.innerHTML = `<p style="color:#b34a3d">${data.detail || 'Something went wrong.'}</p>`;
+    return;
+  }
   resultBox.innerHTML = `<p><span class="badge" style="background:${colors[data.status]||'#555'}">${data.status}</span> ${data.message}</p>`;
   await typeTrail(data.audit_trail || []);
 }
@@ -442,6 +446,11 @@ document.getElementById('purchaseForm').addEventListener('submit', async (e)=>{
   try{
     const res = await fetch('/checkout/prepare', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
     const data = await res.json();
+
+    if (!res.ok){
+      resultBox.innerHTML = `<p style="color:#b34a3d">${data.detail || 'Something went wrong.'}</p>`;
+      return;
+    }
 
     if (!data.ready){
       resultBox.innerHTML = `<p><span class="badge" style="background:${colors[data.status]||'#555'}">${data.status}</span> ${data.message}</p>`;
