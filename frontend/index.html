@@ -138,6 +138,18 @@
   .mod.open .mod-detail{display:block}
   .mod-detail .mini-anim{height:80px;max-width:400px}
 
+
+  /* --- protocol demo --- */
+  .protocols{max-width:900px;margin:55px auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px}
+  .protocol-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+  .protocol-card{border:1px solid var(--line);border-radius:10px;padding:18px;background:#fcfaf6}
+  .protocol-card h3{margin:6px 0;font-size:18px}.protocol-card p{font-size:13px;color:#756e61;line-height:1.55}
+  .protocol-badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;padding:5px 8px;border-radius:999px;background:#edf5ee;color:#356143}
+  .protocol-form{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.protocol-form label{font-size:12px;color:#756e61;display:block;margin-bottom:4px}.protocol-form input{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:7px;background:#fff}
+  .protocol-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}.protocol-actions button{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:11px 16px;font-weight:700;cursor:pointer}.protocol-actions button:disabled{opacity:.6;cursor:not-allowed}
+  .protocol-status{margin-top:16px;border:1px solid var(--line);border-radius:9px;padding:14px;background:#fbfaf7;font-size:13px;line-height:1.8}.protocol-line{padding:5px 0;border-bottom:1px solid #eee8de}.protocol-line:last-child{border-bottom:0}.p-ok{color:#356143;font-weight:700}.p-wait{color:#8a8272}.p-bad{color:#a13c32;font-weight:700}
+  @media(max-width:700px){.protocol-grid,.protocol-form{grid-template-columns:1fr}}
+
   /* --- closing banner --- */
   .banner{background:var(--ink);color:#fff;border-radius:16px;max-width:900px;margin:60px auto;padding:50px 30px;text-align:center}
   .banner h2{font-size:28px;margin:0 0 10px}
@@ -176,7 +188,7 @@
 
 <nav>
   <b>Spend<span class="accent">Rail</span></b>
-  <div><a href="#how">How it works</a><a href="#modules">Modules</a><a href="/about">About</a><a href="/docs" target="_blank">API Docs</a><a href="/dashboard">Dashboard</a><a href="#play">Playground</a><a href="/signin">Sign in</a></div>
+  <div><a href="#how">How it works</a><a href="#modules">Modules</a><a href="#protocols">Protocols</a><a href="/about">About</a><a href="/docs" target="_blank">API Docs</a><a href="/dashboard">Dashboard</a><a href="#play">Playground</a><a href="/signin">Sign in</a></div>
   <a href="/signup" style="background:var(--accent);color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Sign up free</a>
 </nav>
 
@@ -185,6 +197,7 @@
   <p>One checkout pipeline: a shopping agent picks the product, a policy engine enforces hard limits no agent can override, a risk gate screens for fraud, payment recovers itself when it fails, and every step lands in one audit trail.</p>
   <a class="cta primary" href="#play">Try the Playground</a>
   <a class="cta ghost" href="#how">See how it works</a>
+  <a class="cta ghost" href="#protocols">See protocol security</a>
 </div>
 
 <div class="pipeline" id="how">
@@ -304,6 +317,26 @@
   <h2 class="serif">Give your agent money it can be trusted with.</h2>
   <p>Run a real order below and watch every decision — gated, scored, recovered, reconciled — happen in front of you.</p>
   <a class="cta primary" href="#play">Try the Playground</a>
+</div>
+
+
+<!-- PROTOCOLS: real backend demo -->
+<div class="reveal protocols wrap" id="protocols">
+  <div class="eyebrow">PROTOCOL-AWARE CHECKOUT</div>
+  <h2 class="serif">Trust the agent. Verify the authorization.</h2>
+  <p class="sub" style="text-align:left;max-width:760px;margin-left:0">This is a live protocol path, not a visual mock. Register the buyer agent, issue a real ES256-signed mandate, then send the order through UAP → AP2 → Policy → Risk.</p>
+  <div class="protocol-grid">
+    <div class="protocol-card"><span class="protocol-badge">UAP-INSPIRED</span><h3>Agent Trust Registry</h3><p>An agent must be registered with a declared spending ceiling before it can transact. Unregistered or over-ceiling orders stop here.</p><div class="step-code">agent_id + merchant + ceiling<br>→ trust gate</div></div>
+    <div class="protocol-card"><span class="protocol-badge">AP2-INSPIRED</span><h3>Signed Cart Mandate</h3><p>The authorization is cryptographically signed using ECDSA P-256 / ES256 and bounded by agent, merchant, amount and expiry.</p><div class="step-code">tamper / expiry / wrong agent<br>→ verification fails</div></div>
+  </div>
+  <div class="protocol-form">
+    <div><label>Buyer agent ID</label><input id="protoAgent" value="agent-protocol-demo"></div>
+    <div><label>Order query</label><input id="protoQuery" value="coffee set"></div>
+    <div><label>UAP spending ceiling (₹)</label><input id="protoCeiling" type="number" value="5000" min="1"></div>
+    <div><label>AP2 mandate max amount (₹)</label><input id="protoMandateMax" type="number" value="5000" min="1"></div>
+  </div>
+  <div class="protocol-actions"><button id="runProtocolDemo" type="button">Run Live Protocol Demo</button><span style="font-size:12px;color:#8a8272">Calls <code>/uap/register</code>, <code>/mandates</code>, and <code>/uap/checkout/prepare</code></span></div>
+  <div id="protocolStatus" class="protocol-status"><div class="protocol-line p-wait">● Ready — run the live protocol path.</div></div>
 </div>
 
 <div class="reveal play wrap" id="play">
@@ -485,6 +518,42 @@ document.getElementById('purchaseForm').addEventListener('submit', async (e)=>{
     resultBox.innerHTML = '<p style="color:#b34a3d">Could not reach the API — is the server running?</p>';
   }
 });
+
+// --- Live protocol demo: UAP registry + AP2 ES256 mandate ---
+const protoStatus = document.getElementById('protocolStatus');
+function protocolLine(text, cls='p-wait'){ return `<div class="protocol-line ${cls}">${text}</div>`; }
+function setProtocol(lines){ protoStatus.innerHTML = lines.join(''); }
+document.getElementById('runProtocolDemo').addEventListener('click', async ()=>{
+  const btn = document.getElementById('runProtocolDemo');
+  const agent_id = document.getElementById('protoAgent').value.trim();
+  const query = document.getElementById('protoQuery').value.trim();
+  const spending_ceiling = Number(document.getElementById('protoCeiling').value);
+  const max_amount = Number(document.getElementById('protoMandateMax').value);
+  if(!agent_id || !query || !spending_ceiling || !max_amount){ setProtocol([protocolLine('● Fill all protocol fields.','p-bad')]); return; }
+  btn.disabled=true; btn.textContent='Verifying…';
+  setProtocol([protocolLine('● Step 1/3 — registering agent in UAP trust registry…')]);
+  try{
+    let res = await fetch('/uap/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id,merchant_id:activeMerchantId,spending_ceiling})});
+    let data = await res.json();
+    if(!res.ok) throw new Error(data.detail||'UAP registration failed');
+    setProtocol([protocolLine('✓ UAP Trust Registry — PASSED · agent registered at ₹'+Number(data.spending_ceiling).toLocaleString('en-IN'),'p-ok'),protocolLine('● Step 2/3 — issuing cryptographically signed AP2 mandate…')]);
+    res = await fetch('/mandates',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_agent_id:agent_id,merchant_id:activeMerchantId,max_amount,ttl_seconds:300})});
+    data = await res.json();
+    if(!res.ok) throw new Error(data.detail||'Mandate issuance failed');
+    const token=data.mandate_token;
+    setProtocol([protocolLine('✓ UAP Trust Registry — PASSED · registered','p-ok'),protocolLine('✓ AP2 Mandate — ES256 signed · 5 minute expiry','p-ok'),protocolLine('● Step 3/3 — verifying trust + signature + constraints against live order…')]);
+    res = await fetch('/uap/checkout/prepare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({merchant_id:activeMerchantId,buyer_agent_id:agent_id,query,quantity:1,mandate_token:token})});
+    data = await res.json();
+    if(!res.ok) throw new Error(data.detail||'Protocol checkout failed');
+    if(data.protocol_checks){
+      setProtocol([protocolLine('✓ UAP Trust Registry — PASSED · registered and within ceiling','p-ok'),protocolLine('✓ AP2 Mandate — VERIFIED · ES256 signature and constraints valid','p-ok'),protocolLine('✓ Existing Pipeline — '+(data.ready?'READY':'STOPPED')+' · '+(data.status||'completed'),'p-ok'),protocolLine('Protocol-aware checkout completed through the real backend endpoints.','p-ok')]);
+    }else{
+      setProtocol([protocolLine('✓ UAP registration completed','p-ok'),protocolLine('✓ AP2 mandate issued with ES256 signing','p-ok'),protocolLine('✕ Protocol gate rejected order — '+(data.message||data.status),'p-bad')]);
+    }
+  }catch(err){ setProtocol([protocolLine('✕ '+err.message,'p-bad')]); }
+  finally{btn.disabled=false;btn.textContent='Run Live Protocol Demo';}
+});
+
 const io = new IntersectionObserver((entries)=>{
   entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); });
 }, {threshold:0.15});
