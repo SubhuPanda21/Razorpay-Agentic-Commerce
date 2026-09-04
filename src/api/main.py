@@ -8,7 +8,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.db.database import get_session, init_db
-from src.db.models import Product, Order, Merchant, ReconciliationRecord
+from src.db.models import Product, Order, Merchant, ReconciliationRecord, TrustedAgent
+from src.protocols import ap2_mandate, uap_registry
 from src.config import settings
 from src.agents.orchestrator import run_checkout, prepare_checkout, finalize_payment, finalize_from_webhook
 from src.agents.finance_agent import summary as finance_summary
@@ -285,10 +286,14 @@ def checkout_prepare(req: PrepareRequest, request: Request, db: Session = Depend
     if merchant_id is None:
         raise HTTPException(400, "Provide merchant_id or an X-API-Key header")
 
-    result = prepare_checkout(
-        db, merchant_id, req.buyer_agent_id, req.query,
-        req.quantity, req.budget_limit, req.authorized,
-    )
+    try:
+        result = prepare_checkout(
+            db, merchant_id, req.buyer_agent_id, req.query,
+            req.quantity, req.budget_limit, req.authorized,
+        )
+    except Exception as exc:  # noqa: BLE001 - surface real Razorpay/gateway errors as JSON, not a crash
+        raise HTTPException(502, f"Payment gateway error: {exc}")
+
     return {
         "order_id": result.order.id if result.order else None,
         "ready": result.ready,
@@ -307,6 +312,81 @@ class ConfirmRequest(BaseModel):
     razorpay_signature: str | None = None
 
 
+class RegisterAgentRequest(BaseModel):
+    agent_id: str
+    merchant_id: int
+    spending_ceiling: float
+
+
+@app.post("/uap/register")
+def uap_register(req: RegisterAgentRequest, db: Session = Depends(get_session)):
+    """UAP-inspired trust registry: an agent must register with a
+    declared spending ceiling before it's trusted to transact at all."""
+    entry = uap_registry.register(db, req.agent_id, req.merchant_id, req.spending_ceiling)
+    return {"agent_id": entry.agent_id, "merchant_id": entry.merchant_id, "spending_ceiling": entry.spending_ceiling}
+
+
+class MandateRequest(BaseModel):
+    buyer_agent_id: str
+    merchant_id: int
+    max_amount: float
+    ttl_seconds: int = 300
+
+
+@app.post("/mandates")
+def issue_mandate_endpoint(req: MandateRequest):
+    """AP2-inspired signed mandate: a real ES256-signed, bounded spending
+    authorization - not a raw number in a request body."""
+    token = ap2_mandate.issue_mandate(req.buyer_agent_id, req.merchant_id, req.max_amount, req.ttl_seconds)
+    return {"mandate_token": token, "expires_in": req.ttl_seconds}
+
+
+@app.get("/mandates/public-key")
+def mandate_public_key():
+    return {"public_key_pem": ap2_mandate.public_key_pem()}
+
+
+class ProtocolPrepareRequest(BaseModel):
+    merchant_id: int
+    buyer_agent_id: str
+    query: str
+    quantity: int = 1
+    mandate_token: str
+
+
+@app.post("/uap/checkout/prepare")
+def uap_checkout_prepare(req: ProtocolPrepareRequest, db: Session = Depends(get_session)):
+    """The protocol-aware path: UAP trust registry check, then AP2 mandate
+    verification, THEN the same shop -> policy -> risk pipeline everyone
+    else uses. Two extra cryptographic/registry gates in front of the
+    existing, already-tested pipeline - nothing here replaces it."""
+    product_price_estimate = None
+    from src.catalog.catalog_service import search_catalog
+    matches = search_catalog(db, req.query, req.merchant_id)
+    if matches:
+        product_price_estimate = matches[0].price * req.quantity
+
+    if product_price_estimate is not None:
+        trusted, reason = uap_registry.is_trusted(db, req.buyer_agent_id, req.merchant_id, product_price_estimate)
+        if not trusted:
+            return {"ready": False, "status": "uap_rejected", "message": reason}
+
+        valid, reason = ap2_mandate.verify_mandate(req.mandate_token, req.merchant_id, product_price_estimate, req.buyer_agent_id)
+        if not valid:
+            return {"ready": False, "status": "ap2_mandate_rejected", "message": reason}
+
+    result = prepare_checkout(db, req.merchant_id, req.buyer_agent_id, req.query, req.quantity)
+    return {
+        "order_id": result.order.id if result.order else None,
+        "ready": result.ready,
+        "status": result.status,
+        "message": result.message,
+        "checkout": result.checkout_session,
+        "audit_trail": result.audit_trail,
+        "protocol_checks": {"uap_trust_registry": "passed", "ap2_mandate": "verified"},
+    }
+
+
 @app.post("/checkout/confirm")
 def checkout_confirm(req: ConfirmRequest, db: Session = Depends(get_session)):
     """Confirms payment: real signature verification against Razorpay when
@@ -319,7 +399,11 @@ def checkout_confirm(req: ConfirmRequest, db: Session = Depends(get_session)):
         "razorpay_payment_id": req.razorpay_payment_id,
         "razorpay_signature": req.razorpay_signature,
     }
-    result = finalize_payment(db, order, req.preferred_method, payload)
+    try:
+        result = finalize_payment(db, order, req.preferred_method, payload)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(502, f"Payment gateway error: {exc}")
+
     return {
         "order_id": result.order_id,
         "status": result.status,

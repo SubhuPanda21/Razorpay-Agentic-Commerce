@@ -126,6 +126,18 @@ class ReconciliationRecord(Base):
     order = relationship("Order", back_populates="reconciliation")
 
 
+class TrustedAgent(Base):
+    """UAP-inspired trust registry entry - simulated, since NPCI's real UAP
+    has no public implementation yet (per the track's own brief)."""
+    __tablename__ = "trusted_agents"
+
+    id = Column(Integer, primary_key=True)
+    agent_id = Column(String(120), nullable=False)
+    merchant_id = Column(Integer, ForeignKey("merchants.id"), nullable=False)
+    spending_ceiling = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 class AuditLog(Base):
     """Append-only trail. Every agent decision writes here.
 

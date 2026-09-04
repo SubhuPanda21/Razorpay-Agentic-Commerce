@@ -4,5 +4,6 @@ sqlalchemy==2.0.35
 pydantic==2.9.2
 razorpay==1.4.2
 setuptools==75.6.0  # razorpay SDK needs pkg_resources, removed in setuptools>=80
+cryptography>=42
 pytest==8.3.3
 python-dotenv==1.0.1

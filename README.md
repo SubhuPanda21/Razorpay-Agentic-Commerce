@@ -9,10 +9,10 @@ Built for the Razorpay AI Buildathon · Track 01: AI Growth & Agentic Commerce
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-red?logo=sqlite&logoColor=white)](https://www.sqlalchemy.org/)
-[![Tests](https://img.shields.io/badge/tests-11%20passing-brightgreen?logo=pytest&logoColor=white)](#tests)
+[![Tests](https://img.shields.io/badge/tests-20%20passing-brightgreen?logo=pytest&logoColor=white)](#tests)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](#)
 
-**[🔴 Live Demo — try the playground](https://razorpay-agentic-commerce-d5ii.onrender.com)**
+**[🔴 Live Demo — try the playground](https://razorpay-agentic-commerce-d5ii.onrender.com)** · **[🎬 Demo Video](https://drive.google.com/file/d/1l5ylIN5Tc2jsYbNYfHYXoQWwnXR4rCmO/view?usp=sharing)**
 
 </div>
 
@@ -33,6 +33,37 @@ reconciliation — all logged to one audit trail.
 | **02 · AI Risk Manager** | `risk_agent.py` — defense-only fraud gate (velocity + amount anomaly) |
 | **03 · AI Revenue Recovery** | `recovery_agent.py` — bounded retry workflow with a stopping rule |
 | **04 · AI Finance Controller** | `finance_agent.py` — reconciliation with honest exception reporting |
+
+---
+
+## Protocols referenced
+
+The track's own brief names the open protocol race directly: NPCI's UAP,
+Google's AP2, and OpenAI/Stripe's ACP. This system engages with two of
+them concretely, not just by name-dropping:
+
+| Protocol | Role here |
+|---|---|
+| **UAP** (NPCI, simulated — no public implementation exists yet) | `src/protocols/uap_registry.py` — an agent must register against a merchant with a declared spending ceiling before it's trusted to transact at all, independent of any single order |
+| **AP2** (Google) | `src/protocols/ap2_mandate.py` — a real ES256 (ECDSA/P-256) signed "Cart Mandate": buyer agent, merchant, ceiling, expiry. A tampered or expired mandate fails cryptographic verification, not a string comparison |
+| **ACP** (OpenAI + Stripe) | The existing agent-readable catalog (`catalog_tools.search_catalog`) already follows this shape — a merchant's inventory exposed as a tool an agent queries, not a human-facing page |
+
+The protocol-aware path — `POST /uap/checkout/prepare` — layers UAP
+registry + AP2 mandate verification *in front of* the same shop → policy
+→ risk pipeline every other request uses. It's additive: the original
+`/checkout/prepare` is untouched and still works exactly as before for
+callers that don't use mandates.
+
+```bash
+# 1. Register the agent (UAP)
+curl -X POST /uap/register -d '{"agent_id":"agent-1","merchant_id":1,"spending_ceiling":5000}'
+
+# 2. Issue a signed mandate (AP2)
+curl -X POST /mandates -d '{"buyer_agent_id":"agent-1","merchant_id":1,"max_amount":2000}'
+
+# 3. Checkout through the protocol-aware path
+curl -X POST /uap/checkout/prepare -d '{"merchant_id":1,"buyer_agent_id":"agent-1","query":"coffee set","mandate_token":"<token from step 2>"}'
+```
 
 ---
 
@@ -219,7 +250,7 @@ after a while can take ~30s to wake up.
 pytest -v
 ```
 
-11 tests, all passing:
+20 tests, all passing:
 
 | Suite | Covers |
 |---|---|
@@ -228,6 +259,8 @@ pytest -v
 | `test_recovery_agent.py` | bounded retries, the stopping rule actually stops |
 | `test_finance_agent.py` | reconciliation matching + honest exception flagging |
 | `test_orchestrator.py` | full pipeline end to end, out-of-stock short-circuit |
+| `test_ap2_mandate.py` | signed mandate: valid, over-ceiling, wrong agent, expired, tampered |
+| `test_uap_registry.py` | unregistered agent rejected, ceiling enforcement, re-registration |
 
 ---
 
