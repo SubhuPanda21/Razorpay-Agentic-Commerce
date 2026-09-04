@@ -12,7 +12,7 @@ Built for the Razorpay AI Buildathon · Track 01: AI Growth & Agentic Commerce
 [![Tests](https://img.shields.io/badge/tests-11%20passing-brightgreen?logo=pytest&logoColor=white)](#tests)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](#)
 
-**[🔴 Live Demo — try the playground](https://razorpay-agentic-commerce-d5ii.onrender.com)**
+**[🔴 Live Demo — try the playground](https://razorpay-agentic-commerce-d5ii.onrender.com)** · **[🎬 Demo Video](https://drive.google.com/file/d/1l5ylIN5Tc2jsYbNYfHYXoQWwnXR4rCmO/view?usp=sharing)**
 
 </div>
 
